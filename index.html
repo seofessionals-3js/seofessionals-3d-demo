@@ -1,0 +1,1091 @@
+<!doctype html>
+<html lang="de">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Seofessionals 3D Demo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* One fixed WebGL house baked in Blender; scrolling walks the camera through it room by room.
+   Editorial card on the left, room index top-right, live floor plan and status bottom-right. */
+:root {
+  --paper: #FAF9F6;
+  --ink: #1C1E22;
+  --muted: #5D6068;
+  --line: rgba(28, 30, 34, .14);
+  --signal: #FFE433;
+  --signal-ink: #1C1E22;
+  --chrome: rgba(26, 28, 32, .80);
+  --chrome-ink: #F1F0EC;
+  --chrome-dim: rgba(241, 240, 236, .62);
+  --scene: #DCE3E6;
+  --shadow: rgba(15, 18, 24, .28);
+  --display: "Barlow Condensed", "Arial Narrow", "Roboto Condensed", sans-serif;
+  --body: "Barlow", "Helvetica Neue", Arial, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #18191C; --ink: #EEEDE8; --muted: #A6A7A2; --line: rgba(238, 237, 232, .14);
+    --chrome: rgba(10, 11, 13, .82); --scene: #1D2125; --shadow: rgba(0, 0, 0, .55);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #18191C; --ink: #EEEDE8; --muted: #A6A7A2; --line: rgba(238, 237, 232, .14);
+  --chrome: rgba(10, 11, 13, .82); --scene: #1D2125; --shadow: rgba(0, 0, 0, .55);
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: auto; }
+body { margin: 0; background: var(--scene); color: var(--ink); font-family: var(--body); font-size: 15px; -webkit-font-smoothing: antialiased; }
+#scene { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: pan-y; }
+body.walking #scene { touch-action: none; cursor: grab; }
+body.walking #scene:active { cursor: grabbing; }
+.vignette { position: fixed; inset: 0; pointer-events: none; background: radial-gradient(120% 90% at 55% 50%, transparent 60%, rgba(18, 20, 24, .2) 100%); }
+#track { height: 1400vh; }
+body.walking #track { height: 0; }
+
+.studio {
+  position: fixed; z-index: 5;
+  top: calc(env(safe-area-inset-top, 0px) + 16px);
+  left: max(16px, calc(env(safe-area-inset-left, 0px) + 16px));
+  display: grid; gap: 2px; padding: 9px 14px 10px;
+  background: var(--chrome); color: var(--chrome-ink);
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+}
+.studio-name { font: 600 17px/1 var(--display); text-transform: uppercase; letter-spacing: .07em; }
+.studio-sub { font: 400 12px/1.2 var(--body); color: var(--chrome-dim); }
+
+.rooms {
+  position: fixed; z-index: 5;
+  top: calc(env(safe-area-inset-top, 0px) + 16px);
+  right: max(16px, calc(env(safe-area-inset-right, 0px) + 16px));
+  display: grid; gap: 2px; padding: 6px;
+  background: var(--chrome);
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+}
+.rooms button {
+  display: flex; align-items: baseline; gap: 10px; border: 0; background: transparent; color: var(--chrome-dim);
+  font: 500 14px/1 var(--body); padding: 8px 12px 8px 10px; text-align: left; cursor: pointer; transition: color .2s, background-color .2s;
+}
+.rooms button .num { font: 400 11px/1 var(--mono); letter-spacing: .04em; opacity: .8; min-width: 1.6em; }
+.rooms button:hover { color: var(--chrome-ink); }
+.rooms button[aria-current="true"] { background: var(--signal); color: var(--signal-ink); }
+button:focus-visible, .plan [data-go]:focus-visible { outline: 2px solid var(--signal); outline-offset: 2px; }
+
+.card {
+  --shift: 0px;
+  position: fixed; z-index: 4;
+  left: max(32px, calc(env(safe-area-inset-left, 0px) + 16px));
+  top: 50%;
+  transform: translateY(calc(-50% + var(--shift)));
+  width: min(410px, calc(100vw - 32px));
+  max-height: calc(100vh - 150px); overflow-y: auto; scrollbar-width: thin;
+  padding: 26px 26px 22px;
+  background: color-mix(in srgb, var(--paper) 94%, transparent);
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 30px 70px -36px var(--shadow);
+  display: grid; gap: 14px;
+  will-change: opacity, transform;
+}
+.card:not([data-i="0"]) { opacity: 0; visibility: hidden; }
+body.walking .card { opacity: 0 !important; visibility: hidden !important; }
+.eyebrow { margin: 0; font: 500 11.5px/1.3 var(--mono); text-transform: uppercase; letter-spacing: .09em; color: var(--muted); }
+.card h1, .card h2 { margin: 0; font-family: var(--display); font-weight: 700; text-transform: uppercase; line-height: .9; letter-spacing: .005em; text-wrap: balance; }
+.card h1 { font-size: clamp(52px, 6.4vw, 86px); }
+.card h2 { font-size: clamp(40px, 4.2vw, 56px); }
+.lede { margin: 0; font-size: 16px; line-height: 1.55; max-width: 38ch; }
+.specs { margin: 0; display: grid; grid-template-columns: 1fr 1fr; border-top: 1px solid var(--line); }
+.specs div { padding: 10px 0 9px; border-bottom: 1px solid var(--line); min-width: 0; }
+.specs div:nth-child(odd) { padding-right: 12px; }
+.specs dt { font: 400 10.5px/1.2 var(--mono); text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+.specs dd { margin: 4px 0 0; font-size: 14px; line-height: 1.3; font-variant-numeric: tabular-nums; }
+
+.actions { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.cta {
+  border: 0; cursor: pointer; background: var(--signal); color: var(--signal-ink);
+  font: 700 19px/1 var(--display); text-transform: uppercase; letter-spacing: .05em; padding: 15px 28px 14px; transition: transform .2s, filter .2s;
+}
+.cta:hover { transform: translateY(-1px); filter: brightness(1.04); }
+.ghost {
+  border: 1px solid var(--line); background: transparent; color: var(--ink); cursor: pointer;
+  font: 600 17px/1 var(--display); text-transform: uppercase; letter-spacing: .05em; padding: 14px 20px 13px;
+}
+.ghost:hover { border-color: var(--ink); }
+.shot { display: inline-flex; align-items: center; gap: 8px; border: 1px solid var(--line); background: transparent; color: var(--ink); cursor: pointer; font: 500 12.5px/1 var(--mono); text-transform: uppercase; letter-spacing: .06em; padding: 10px 12px; justify-self: start; }
+.shot:hover { border-color: var(--ink); }
+.shot svg { width: 14px; height: 14px; }
+.scroll-hint { margin: 0; display: flex; align-items: center; gap: 10px; font: 400 12px/1 var(--mono); color: var(--muted); text-transform: uppercase; letter-spacing: .08em; }
+.scroll-hint i { display: block; width: 1px; height: 26px; background: var(--ink); opacity: .5; animation: drip 2.2s ease-in-out infinite; transform-origin: top; }
+@keyframes drip { 0%, 100% { transform: scaleY(.3); } 50% { transform: scaleY(1); } }
+.contact { margin: 0; padding: 14px 16px; background: color-mix(in srgb, var(--ink) 5%, transparent); font-size: 14.5px; line-height: 1.6; }
+.contact span { font-family: var(--mono); font-size: 13.5px; user-select: all; }
+.credits { margin: 0; font: 400 11px/1.5 var(--mono); color: var(--muted); }
+
+.plan {
+  position: fixed; z-index: 3;
+  right: max(16px, calc(env(safe-area-inset-right, 0px) + 16px));
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 138px);
+  width: 214px; padding: 10px 10px 8px; margin: 0;
+  background: var(--chrome); color: var(--chrome-ink);
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+}
+.plan svg { display: block; width: 100%; height: auto; }
+.plan .rm { fill: rgba(241, 240, 236, .05); stroke: rgba(241, 240, 236, .45); stroke-width: .8; cursor: pointer; transition: fill .3s; }
+.plan .rm:hover { fill: rgba(241, 240, 236, .14); }
+.plan .rm.on { fill: var(--signal); }
+.plan .gar { fill: none; stroke: rgba(241, 240, 236, .25); stroke-width: .8; stroke-dasharray: 2 2; }
+.plan text { font: 500 5.6px var(--mono); fill: rgba(241, 240, 236, .75); pointer-events: none; text-transform: uppercase; letter-spacing: .04em; }
+.plan text.on { fill: var(--signal-ink); }
+.plan .cam path { fill: var(--signal); opacity: .55; }
+.plan .cam circle { fill: var(--signal); stroke: #1C1E22; stroke-width: 1; }
+.plan figcaption { margin-top: 6px; display: flex; justify-content: space-between; font: 400 10px/1.2 var(--mono); color: var(--chrome-dim); letter-spacing: .05em; text-transform: uppercase; }
+
+.status {
+  position: fixed; z-index: 3;
+  right: max(16px, calc(env(safe-area-inset-right, 0px) + 16px));
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 24px);
+  width: 214px; padding: 10px 14px 12px; display: grid; gap: 8px;
+  background: var(--chrome); color: var(--chrome-ink);
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+}
+.status-row { display: flex; justify-content: space-between; gap: 16px; font: 400 11.5px/1.2 var(--mono); letter-spacing: .05em; text-transform: uppercase; }
+.status-row span:last-child { color: var(--chrome-dim); }
+.status-bar { height: 2px; background: rgba(241, 240, 236, .18); }
+.status-bar span { display: block; height: 100%; width: 0; background: var(--signal); }
+.walk-toggle { border: 0; background: var(--signal); color: var(--signal-ink); cursor: pointer; font: 700 15px/1 var(--display); text-transform: uppercase; letter-spacing: .06em; padding: 9px 10px 8px; }
+body.walking .walk-toggle { background: transparent; color: var(--chrome-ink); box-shadow: inset 0 0 0 1px rgba(241, 240, 236, .4); }
+
+.walk-hint {
+  position: fixed; z-index: 4; left: 50%; bottom: calc(env(safe-area-inset-bottom, 0px) + 24px); transform: translateX(-50%);
+  padding: 10px 14px; background: var(--chrome); color: var(--chrome-ink); font: 400 12px/1.4 var(--mono); letter-spacing: .04em; text-align: center;
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); opacity: 0; visibility: hidden; transition: opacity .3s, visibility .3s;
+}
+.walk-hint b { color: var(--signal); font-weight: 500; }
+body.walking .walk-hint { opacity: 1; visibility: visible; }
+
+#loader {
+  position: fixed; inset: 0; z-index: 20; display: grid; place-items: center;
+  background: var(--scene); transition: opacity .9s ease, visibility .9s;
+}
+#loader.done { opacity: 0; visibility: hidden; }
+.loader-inner { display: grid; gap: 12px; justify-items: center; text-align: center; padding-inline: 24px; }
+.loader-brand { font: 700 30px/1 var(--display); text-transform: uppercase; letter-spacing: .08em; color: var(--ink); }
+.loader-note { font: 400 12.5px/1.5 var(--mono); color: var(--muted); max-width: 44ch; }
+.loader-bar { width: 200px; height: 2px; background: var(--line); overflow: hidden; }
+.loader-bar span { display: block; height: 100%; width: 0; background: var(--ink); transition: width .3s; }
+#loader.failed .loader-bar { display: none; }
+
+dialog.lightbox { padding: 0; border: 0; background: #0d0e10; max-width: 100vw; max-height: 100vh; width: 100vw; height: 100vh; }
+dialog.lightbox::backdrop { background: rgba(0, 0, 0, .85); }
+.lightbox figure { margin: 0; width: 100%; height: 100%; display: grid; grid-template-rows: 1fr auto; }
+.lightbox .frame { overflow: auto; display: grid; place-items: center; min-height: 0; }
+.lightbox img { display: block; max-width: 100%; max-height: 100%; object-fit: contain; cursor: zoom-in; }
+.lightbox.zoom img { max-width: none; max-height: none; cursor: zoom-out; }
+.lightbox figcaption { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 16px; color: #F1F0EC; font: 400 12px/1.3 var(--mono); letter-spacing: .05em; text-transform: uppercase; }
+.lightbox figcaption span { color: rgba(241, 240, 236, .6); }
+.lightbox button { border: 1px solid rgba(241, 240, 236, .35); background: transparent; color: #F1F0EC; font: 500 12px/1 var(--mono); text-transform: uppercase; letter-spacing: .06em; padding: 9px 12px; cursor: pointer; }
+
+@media (max-width: 1100px), (max-height: 720px) { .plan { display: none; } }
+@media (max-width: 760px) {
+  .studio { display: none; }
+  .status { left: max(12px, calc(env(safe-area-inset-left, 0px) + 12px)); right: auto; width: auto; bottom: auto; top: calc(env(safe-area-inset-top, 0px) + 64px); padding: 6px; }
+  .status .status-row, .status .status-bar { display: none; }
+  .rooms {
+    left: max(12px, calc(env(safe-area-inset-left, 0px) + 12px));
+    right: max(12px, calc(env(safe-area-inset-right, 0px) + 12px));
+    top: calc(env(safe-area-inset-top, 0px) + 12px);
+    display: flex; overflow-x: auto; scrollbar-width: none; padding: 4px;
+  }
+  .rooms::-webkit-scrollbar { display: none; }
+  .rooms button { flex: 0 0 auto; padding: 8px 10px; font-size: 13px; gap: 6px; }
+  .rooms button .num { display: none; }
+  .card {
+    top: auto; left: max(12px, calc(env(safe-area-inset-left, 0px) + 12px));
+    right: max(12px, calc(env(safe-area-inset-right, 0px) + 12px));
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 12px);
+    width: auto; max-height: 50vh; transform: translateY(var(--shift)); padding: 16px 16px 14px; gap: 10px;
+  }
+  .card h1 { font-size: 46px; }
+  .card h2 { font-size: 34px; }
+  .lede { font-size: 14.5px; }
+  .specs { display: none; }
+  .cta { font-size: 17px; padding: 13px 22px 12px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .scroll-hint i { animation: none; }
+}
+</style>
+<div id="loader" role="status">
+  <div class="loader-inner">
+    <div class="loader-brand">Seofessionals 3D Demo</div>
+    <div class="loader-note" id="load-note">Das Haus wird geladen · 0 %</div>
+    <div class="loader-bar"><span id="load-bar"></span></div>
+  </div>
+</div>
+
+<canvas id="scene" aria-label="Begehbares 3D-Modell des Linden-Hauses, innen und außen"></canvas>
+<div class="vignette" aria-hidden="true"></div>
+
+<div class="studio"><span class="studio-name">Seofessionals 3D Demo</span><span class="studio-sub">Begehbare Architektur im Browser</span></div>
+
+<nav class="rooms" aria-label="Räume">
+  <button type="button" data-go="0"><span class="num">00</span>Das Haus</button>
+  <button type="button" data-go="1"><span class="num">01</span>Diele</button>
+  <button type="button" data-go="2"><span class="num">02</span>Wohnzimmer</button>
+  <button type="button" data-go="3"><span class="num">03</span>Küche</button>
+  <button type="button" data-go="4"><span class="num">04</span>Bibliothek</button>
+  <button type="button" data-go="5"><span class="num">05</span>Bad</button>
+  <button type="button" data-go="6"><span class="num">06</span>Schlafzimmer</button>
+  <button type="button" data-go="7"><span class="num">07</span>Garten</button>
+  <button type="button" data-go="8"><span class="num">→</span>Ihr Projekt</button>
+</nav>
+
+<section class="card" data-i="0" data-view="exterior" aria-labelledby="t-hero">
+  <p class="eyebrow">Craftsman-Bungalow · 6 Räume · 112 m²</p>
+  <h1 id="t-hero">Das Linden-Haus</h1>
+  <p class="lede">Ein Bungalow mit Holzverschalung und tiefer Veranda, in Blender gerendert und für den Browser gebacken. Scrollen Sie durch alle Räume oder verlassen Sie den Weg und erkunden Sie das Haus selbst.</p>
+  <div class="actions">
+    <button type="button" class="cta" data-go="1">Eintreten</button>
+    <p class="scroll-hint"><i></i>oder scrollen</p>
+  </div>
+</section>
+
+<section class="card" data-i="1" data-view="hall" aria-labelledby="t-hall">
+  <p class="eyebrow">Raum 01 von 06 · 10,4 m²</p>
+  <h2 id="t-hall">Diele</h2>
+  <p class="lede">Eine Galerie-Diele mit weißer Wandvertäfelung, einer Eichenbank mit Garderobenhaken an der Tür und vier gerahmten Drucken auf dem Weg ins Wohnzimmer.</p>
+  <dl class="specs">
+    <div><dt>Länge</dt><dd>7,4 m</dd></div>
+    <div><dt>Vertäfelung</dt><dd>Lackierte Leisten, 1,05 m</dd></div>
+    <div><dt>Läufer</dt><dd>Wolle, Marineblau</dd></div>
+    <div><dt>Kunst</dt><dd>af Klint, Klee</dd></div>
+  </dl>
+</section>
+
+<section class="card" data-i="2" data-view="living" aria-labelledby="t-living">
+  <p class="eyebrow">Raum 02 von 06 · 26,7 m²</p>
+  <h2 id="t-living">Wohnzimmer</h2>
+  <p class="lede">Eichen-Kassettenbalken über einem Kalksteinkamin, eingerahmt von Einbauschränken unter den Seitenfenstern. Eine Kolonnade öffnet den Raum zum Essbereich.</p>
+  <dl class="specs">
+    <div><dt>Decke</dt><dd>2,90 m, Eichenbalken</dd></div>
+    <div><dt>Kamin</dt><dd>Kalkstein, Eichensims</dd></div>
+    <div><dt>Sitzplätze</dt><dd>Leinensofa, 2 Loungesessel</dd></div>
+    <div><dt>Boden</dt><dd>Weißeiche-Dielen</dd></div>
+  </dl>
+</section>
+
+<section class="card" data-i="3" data-view="kitchen" aria-labelledby="t-kitchen">
+  <p class="eyebrow">Raum 03 von 06 · 25,8 m²</p>
+  <h2 id="t-kitchen">Küche &amp; Essen</h2>
+  <p class="lede">Salbeigrüne Landhausfronten mit Spüle unter dem Fenster, eine Marmorinsel mit drei Hockern und ein Eichentisch an der Terrassentür.</p>
+  <dl class="specs">
+    <div><dt>Fronten</dt><dd>Salbeigrün lackiert</dd></div>
+    <div><dt>Arbeitsplatten</dt><dd>Marmor, geschliffen, 40 mm</dd></div>
+    <div><dt>Rückwand</dt><dd>Grüne Glasurfliese</dd></div>
+    <div><dt>Tisch</dt><dd>Eiche, 6 Plätze</dd></div>
+  </dl>
+</section>
+
+<section class="card" data-i="4" data-view="study" aria-labelledby="t-study">
+  <p class="eyebrow">Raum 04 von 06 · 15,2 m²</p>
+  <h2 id="t-study">Bibliothek</h2>
+  <p class="lede">Raumhohe Einbauregale in tiefem Grün, eine Fensterbank mit Schubladen im vorderen Erker, ein Nussbaum-Schreibtisch und eine Bibliotheksleiter.</p>
+  <dl class="specs">
+    <div><dt>Regale</dt><dd>18 m Bücher</dd></div>
+    <div><dt>Fensterbank</dt><dd>1,76 m, Leinenpolster</dd></div>
+    <div><dt>Schreibtisch</dt><dd>Nussbaum, 1,5 m</dd></div>
+    <div><dt>Leiter</dt><dd>Eiche an Messingstange</dd></div>
+  </dl>
+</section>
+
+<section class="card" data-i="5" data-view="bath" aria-labelledby="t-bath">
+  <p class="eyebrow">Raum 05 von 06 · 12,9 m²</p>
+  <h2 id="t-bath">Bad</h2>
+  <p class="lede">Eine freistehende Wanne unter einem hohen Fenster, ein schwebender Eichen-Waschtisch mit Terrazzoplatte und zwei Aufsatzbecken, dazu eine begehbare Dusche hinter Stahlrahmen-Glas.</p>
+  <dl class="specs">
+    <div><dt>Wände</dt><dd>Glasurfliese bis 1,25 m</dd></div>
+    <div><dt>Boden</dt><dd>Natursteinfliese</dd></div>
+    <div><dt>Waschtisch</dt><dd>Eiche, Terrazzo</dd></div>
+    <div><dt>Armaturen</dt><dd>Gebürstetes Messing</dd></div>
+  </dl>
+</section>
+
+<section class="card" data-i="6" data-view="bed" aria-labelledby="t-bed">
+  <p class="eyebrow">Raum 06 von 06 · 20,8 m²</p>
+  <h2 id="t-bed">Schlafzimmer</h2>
+  <p class="lede">Eine Wand in Lehm-Kalkputz hinter dem Polsterbett, ein Fenster zum Garten am Fußende und eine Schrankwand aus Eiche, die den ganzen Stauraum aufnimmt.</p>
+  <dl class="specs">
+    <div><dt>Bett</dt><dd>180 × 200 cm</dd></div>
+    <div><dt>Akzentwand</dt><dd>Lehm-Kalkputz</dd></div>
+    <div><dt>Schrank</dt><dd>2,9 m, Eiche</dd></div>
+    <div><dt>Bettwäsche</dt><dd>Leinen, Wolldecke</dd></div>
+  </dl>
+</section>
+
+<section class="card" data-i="7" data-view="rear" aria-labelledby="t-garden">
+  <p class="eyebrow">Außen · 23 m² Terrasse</p>
+  <h2 id="t-garden">Garten</h2>
+  <p class="lede">Die Terrassentür öffnet sich auf eine Steinterrasse mit Bistrotisch, gerahmt von einem Jacaranda und alten Bäumen. Der Kalksteinschornstein führt den Kamin auf der Gartenseite nach außen.</p>
+</section>
+
+<section class="card" data-i="8" data-view="rear" aria-labelledby="t-outro">
+  <p class="eyebrow">Ihr Projekt</p>
+  <h2 id="t-outro">Begehen Sie Ihr Haus, bevor es gebaut ist</h2>
+  <p class="lede">Diese Demo von Seofessionals zeigt, was mit Ihrem Projekt möglich ist: in 4K gerendert für Druck und Exposé, und gebacken als 3D-Welt, die man im Browser begehen kann, am Handy wie am Rechner.</p>
+  <div class="actions">
+    <button type="button" class="cta" id="book">Projekt anfragen</button>
+    <button type="button" class="ghost" data-go="0">Noch einmal durchgehen</button>
+  </div>
+  <p class="contact" id="contact" hidden>Sprechen Sie Seofessionals an. Wir bauen Ihr Haus, Ihre Wohnung oder Ihr Ladenlokal als begehbare 3D-Welt für Ihre Website.</p>
+  <p class="credits">Gerendert mit Blender Cycles, Lightmaps in 2K gebacken · Materialien: ambientCG (CC0) · Möbel, Pflanzen und Himmel: Poly Haven (CC0) · Kunst: Hilma af Klint, Paul Klee (gemeinfrei)</p>
+</section>
+
+<figure class="plan" aria-label="Grundriss">
+  <svg viewBox="-46 -26 148 144" role="group" aria-label="Grundriss, Raum auswählen">
+    <rect class="gar" x="-42" y="-22" width="42" height="62"></rect>
+    <text x="-38" y="-14">Garage</text>
+    <rect class="rm" data-go="4" data-room="4" x="0" y="0" width="38" height="40" tabindex="0" role="button" aria-label="Bibliothek"></rect>
+    <rect class="rm" data-go="1" data-room="1" x="38" y="0" width="14" height="74" tabindex="0" role="button" aria-label="Diele"></rect>
+    <rect class="rm" data-go="2" data-room="2" x="52" y="0" width="46" height="58" tabindex="0" role="button" aria-label="Wohnzimmer"></rect>
+    <rect class="rm" data-go="5" data-room="5" x="0" y="40" width="38" height="34" tabindex="0" role="button" aria-label="Bad"></rect>
+    <rect class="rm" data-go="3" data-room="3" x="52" y="58" width="46" height="56" tabindex="0" role="button" aria-label="Küche"></rect>
+    <rect class="rm" data-go="6" data-room="6" x="0" y="74" width="52" height="40" tabindex="0" role="button" aria-label="Schlafzimmer"></rect>
+    <text data-room="4" x="3" y="8">Bibliothek</text>
+    <text data-room="1" x="40" y="8">Diele</text>
+    <text data-room="2" x="55" y="8">Wohnen</text>
+    <text data-room="5" x="3" y="48">Bad</text>
+    <text data-room="3" x="55" y="66">Küche</text>
+    <text data-room="6" x="3" y="82">Schlafen</text>
+    <g class="cam" id="cam"><path d="M0 0 L16 -8 A18 18 0 0 1 16 8 Z"></path><circle r="2.6"></circle></g>
+  </svg>
+  <figcaption><span>Grundriss · 1:100</span><span>112 m²</span></figcaption>
+</figure>
+
+<div class="status">
+  <div class="status-row" aria-live="polite"><span id="status-text">Das Haus</span><span id="status-step">Zum Gehen scrollen</span></div>
+  <div class="status-bar"><span id="status-fill"></span></div>
+  <button type="button" class="walk-toggle" id="walk" aria-pressed="false">Frei erkunden</button>
+</div>
+<p class="walk-hint" id="walk-hint"><b>Ziehen</b> zum Umsehen · <b>W A S D</b> oder Pfeiltasten zum Gehen · am Handy <b>gedrückt halten</b> zum Vorwärtsgehen</p>
+
+<dialog class="lightbox" id="lightbox" aria-label="4K-Rendering">
+  <figure>
+    <div class="frame"><img id="lb-img" alt=""></div>
+    <figcaption><span id="lb-cap"></span><span>Blender Cycles · 3840 × 2160</span><button type="button" id="lb-close">Schließen</button></figcaption>
+  </figure>
+</dialog>
+
+<div id="track" aria-hidden="true"></div>
+
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/"
+} }
+</script>
+<script type="module">
+import * as T from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { RGBELoader } from 'three/addons/loaders/RGBELoader.js';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+
+const PI = Math.PI;
+document.documentElement.lang = 'de';
+const $ = (s) => document.querySelector(s);
+const $$ = (s) => [...document.querySelectorAll(s)];
+const loaderEl = $('#loader');
+const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const note = (t) => { $('#load-note').textContent = t; };
+const fail = (t) => { note(t); loaderEl.classList.add('failed'); };
+// Blender (x, y, z) with z up -> three.js (x, z, -y)
+const B = (x, y, z) => new T.Vector3(x, z, -y);
+
+/* ================= Renderer ================= */
+// three.js ships plain AgX; the Cycles renders use AgX with the "Medium High Contrast" look,
+// so a custom tone map adds that contrast and saturation in display space
+// (patched into AgXToneMapping itself, so the post-processing OutputPass applies it too)
+const AGX_GRADED = T.ShaderChunk.tonemapping_pars_fragment.includes('vec3 AgXToneMapping( vec3 color ) {');
+if (AGX_GRADED) {
+  T.ShaderChunk.tonemapping_pars_fragment = T.ShaderChunk.tonemapping_pars_fragment.replace(
+    'vec3 AgXToneMapping( vec3 color ) {', 'vec3 AgXToneMappingBase( vec3 color ) {') + `
+  vec3 AgXToneMapping( vec3 color ) {
+    vec3 c = AgXToneMappingBase( color );
+    vec3 d = pow( max( c, vec3( 0.0 ) ), vec3( 1.0 / 2.2 ) );
+    d = ( d - 0.5 ) * 1.14 + 0.5;
+    float l = dot( d, vec3( 0.2126, 0.7152, 0.0722 ) );
+    d = mix( vec3( l ), d, 1.22 );
+    return pow( clamp( d, 0.0, 1.0 ), vec3( 2.2 ) );
+  }`;
+}
+let renderer;
+try {
+  renderer = new T.WebGLRenderer({ canvas: $('#scene'), antialias: true, powerPreference: 'high-performance', stencil: false });
+} catch (e) { fail('Für den Rundgang wird WebGL benötigt. Es ist in diesem Browser ausgeschaltet oder nicht verfügbar.'); throw e; }
+// Quality tier. Phones and low-memory machines get the same files, but textures are scaled down before they
+// reach the GPU (about a quarter of the video memory) and sharpness comes from pixel density instead of MSAA.
+const LITE = (matchMedia('(pointer: coarse)').matches && Math.min(screen.width, screen.height) < 900) || (navigator.deviceMemory || 8) <= 4;
+let dpr = Math.min(window.devicePixelRatio || 1, LITE ? 2 : 1.75);
+renderer.setPixelRatio(dpr);
+renderer.setSize(innerWidth, innerHeight, false);
+renderer.outputColorSpace = T.SRGBColorSpace;
+renderer.toneMapping = T.AgXToneMapping;
+renderer.toneMappingExposure = 1;
+
+const scene = new T.Scene();
+const camera = new T.PerspectiveCamera(60, innerWidth / innerHeight, 0.05, 800);
+const pmrem = new T.PMREMGenerator(renderer);
+// HDR pipeline: scene -> soft bloom on windows and lamps -> AgX tone map (OutputPass)
+const composer = new EffectComposer(renderer, new T.WebGLRenderTarget(innerWidth * dpr, innerHeight * dpr, { type: T.HalfFloatType, samples: LITE ? 0 : 4 }));
+composer.setPixelRatio(dpr);
+composer.addPass(new RenderPass(scene, camera));
+const bloom = new UnrealBloomPass(new T.Vector2(innerWidth / 2, innerHeight / 2), 0.2, 0.55, 1.0);
+composer.addPass(bloom);
+composer.addPass(new OutputPass());
+// the scene renders into the composer's HDR target, so shaders must be compiled for that target, not the screen
+const precompile = () => { renderer.setRenderTarget(composer.readBuffer); renderer.compile(scene, camera); renderer.setRenderTarget(null); };
+const renderFrame = () => {
+  bloom.threshold = 1.7 / Math.max(0.2, renderer.toneMappingExposure);   // bloom only what reads brighter than white
+  composer.render();
+};
+
+/* ================= Loading ================= */
+let man;
+const progress = { total: 1, done: 0 };
+const bump = (n = 1) => { progress.done += n; const f = Math.min(1, progress.done / progress.total); $('#load-bar').style.width = `${(f * 90).toFixed(1)}%`; note(`Das Haus wird geladen · ${Math.round(f * 100)} %`); };
+const manager = new T.LoadingManager();
+// track what is still in flight so a stalled load can say which file it is waiting for
+const pending = new Map(), failures = [];
+manager.onStart = manager.onProgress = () => bump(0);
+manager.itemStart = ((orig) => (url) => { pending.set(url, performance.now()); orig.call(manager, url); })(manager.itemStart);
+manager.itemEnd = ((orig) => (url) => { pending.delete(url); orig.call(manager, url); })(manager.itemEnd);
+manager.itemError = ((orig) => (url) => { failures.push(url); pending.delete(url); orig.call(manager, url); })(manager.itemError);
+const short = (u) => String(u).split('/').slice(-2).join('/').slice(0, 60);
+addEventListener('error', (e) => failures.push(e.message || 'script error'));
+addEventListener('unhandledrejection', (e) => failures.push(String(e.reason && e.reason.message || e.reason)));
+let stallTimer = setInterval(() => {
+  if (loaderEl.classList.contains('done')) { clearInterval(stallTimer); return; }
+  const now = performance.now(), slow = [...pending].filter(([, t]) => now - t > 15000).map(([u]) => short(u));
+  if (slow.length || failures.length) {
+    note(`Das Haus wird geladen · ${Math.round(Math.min(1, progress.done / progress.total) * 100)} % · wartet auf ${slow.slice(0, 3).join(', ') || '—'}${failures.length ? ' · fehlgeschlagen: ' + failures.slice(-3).map(short).join(', ') : ''}`);
+  }
+}, 3000);
+const gltfLoader = new GLTFLoader(manager);
+const texLoader = new T.TextureLoader(manager);
+const b64 = (s) => { const bin = atob(s), u = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i); return u.buffer; };
+
+// lightmapped surfaces take their diffuse light only from the bake; the environment adds reflections
+const IBL_LINE = 'iblIrradiance += getIBLIrradiance( geometryNormal );';
+// Reflections come from a cube captured in the middle of each room. Projecting the reflection ray onto the
+// room's box puts windows and furniture where they really are in the floor, instead of at infinity.
+const BOX = { boxMin: { value: new T.Vector3(-1e4, -1e4, -1e4) }, boxMax: { value: new T.Vector3(1e4, 1e4, 1e4) }, boxProbe: { value: new T.Vector3() } };
+const REFLECT_LINE = 'reflectVec = inverseTransformDirection( reflectVec, viewMatrix );';
+const BOX_OK = T.ShaderChunk.envmap_physical_pars_fragment.includes(REFLECT_LINE);
+const boxChunk = T.ShaderChunk.envmap_physical_pars_fragment.replace(REFLECT_LINE, `${REFLECT_LINE}
+    {
+      vec3 bMax = ( boxMax - vBoxPos ) / reflectVec;
+      vec3 bMin = ( boxMin - vBoxPos ) / reflectVec;
+      vec3 bFar = max( bMax, bMin );
+      float bD = min( min( bFar.x, bFar.y ), bFar.z );
+      reflectVec = normalize( vBoxPos + reflectVec * bD - boxProbe );
+    }`);
+const bakedShader = (shader) => {
+  shader.fragmentShader = shader.fragmentShader.replace('#include <lights_fragment_maps>', T.ShaderChunk.lights_fragment_maps.replace(IBL_LINE, ''));
+  if (!BOX_OK) return;
+  Object.assign(shader.uniforms, BOX);
+  shader.vertexShader = 'varying vec3 vBoxPos;\n' + shader.vertexShader.replace('#include <worldpos_vertex>', '#include <worldpos_vertex>\n  vBoxPos = ( modelMatrix * vec4( transformed, 1.0 ) ).xyz;');
+  shader.fragmentShader = 'uniform vec3 boxMin;\nuniform vec3 boxMax;\nuniform vec3 boxProbe;\nvarying vec3 vBoxPos;\n'
+    + shader.fragmentShader.replace('#include <envmap_physical_pars_fragment>', boxChunk);
+};
+const flames = [];
+function flameTexture() {
+  const c = document.createElement('canvas'); c.width = 128; c.height = 256;
+  const g = c.getContext('2d');
+  for (let i = 0; i < 9; i++) {
+    const x = 64 + (i - 4) * 9 + (i % 3 - 1) * 5, h = 150 + (i * 37 % 70);
+    const grd = g.createRadialGradient(x, 230, 2, x, 230 - h * .35, h * .55);
+    grd.addColorStop(0, 'rgba(255,240,200,.95)'); grd.addColorStop(.35, 'rgba(255,170,60,.75)'); grd.addColorStop(.75, 'rgba(230,80,20,.25)'); grd.addColorStop(1, 'rgba(200,40,10,0)');
+    g.fillStyle = grd; g.beginPath(); g.ellipse(x, 230 - h * .32, 16 + (i % 2) * 6, h * .42, 0, 0, PI * 2); g.fill();
+  }
+  const t = new T.CanvasTexture(c); t.colorSpace = T.SRGBColorSpace; return t;
+}
+let flameMat = null;
+
+// LITE tier: scale textures down on the CPU before the first upload
+const HERO = ['OakFloor', 'Plaster', 'Ceiling', 'Limestone', 'Marble', 'Oak', 'OakBeam', 'Walnut', 'BathFloor', 'BathWall', 'Zellige',
+  'Terrazzo', 'Linen', 'LinenWhite', 'Rug', 'RugNavy', 'LimewashClay', 'LawnTex', 'Paving'];
+const capped = new WeakSet();
+function capTexture(t, cap) {
+  if (!LITE || !t || capped.has(t) || !t.image) return;
+  capped.add(t);
+  const im = t.image, w = im.width, h = im.height;
+  if (!w || Math.max(w, h) <= cap) return;
+  const f = cap / Math.max(w, h), c = document.createElement('canvas');
+  c.width = Math.max(1, Math.round(w * f)); c.height = Math.max(1, Math.round(h * f));
+  const g = c.getContext('2d'); g.imageSmoothingQuality = 'high'; g.drawImage(im, 0, 0, c.width, c.height);
+  if (im.close) im.close();
+  t.image = c; t.needsUpdate = true;
+}
+function capMaterial(m, name) {
+  const hero = HERO.includes(name);
+  capTexture(m.map, hero ? 1024 : 512);
+  capTexture(m.normalMap, hero ? 1024 : 512);
+  capTexture(m.roughnessMap, 256); capTexture(m.metalnessMap, 256);
+  capTexture(m.lightMap, 1024); capTexture(m.alphaMap, 512);
+}
+
+function prepareMaterial(m, zone) {
+  const kind = m.userData.web_kind;
+  const name = m.name.split('@')[0];
+  if (kind === 'glass' || (m.transmission > 0 && !m.userData.lightmap)) {
+    const water = name === 'Water';
+    const g = new T.MeshPhysicalMaterial({ color: water ? '#cfe2e0' : '#eef4f4', roughness: 0.02, metalness: 0, transparent: true, opacity: water ? 0.55 : (name === 'ShowerGlass' ? 0.16 : 0.07), depthWrite: false, side: T.DoubleSide, envMapIntensity: 1.2 });
+    g.name = m.name; return g;
+  }
+  if (kind === 'flame') {
+    if (!flameMat) {
+      flameMat = new T.MeshBasicMaterial({ map: flameTexture(), transparent: true, depthWrite: false, blending: T.AdditiveBlending, side: T.DoubleSide });
+      flameMat.color.setScalar(0.9);
+    }
+    return flameMat;
+  }
+  if (kind === 'sheer') {
+    const s = new T.MeshStandardMaterial({ color: '#f3f1ec', roughness: 1, transparent: true, opacity: 0.72, side: T.DoubleSide, depthWrite: false });
+    s.name = m.name; return s;
+  }
+  if (m.alphaMap || m.transparent || (m.map && m.userData.web_kind !== 'pbr' && m.alphaTest > 0)) {
+    // scanned foliage and cut-outs: hard alpha instead of sorting thousands of leaves
+    m.transparent = false; m.alphaTest = Math.max(m.alphaTest, 0.45); m.depthWrite = true; m.side = T.DoubleSide;
+  }
+  if (m.userData.lightmap && m.emissiveMap) {
+    const z = man.zones[m.userData.lightmap];
+    // keep the UV set the glTF names: textureless materials export the lightmap UVs as set 0, not 1
+    m.lightMap = m.emissiveMap;
+    m.lightMapIntensity = (z ? z.lmScale : 1) * PI;
+    m.emissiveMap = null; m.emissive.setRGB(0, 0, 0);
+    m.onBeforeCompile = bakedShader;
+    m.customProgramCacheKey = () => 'lm-box';
+    m.envMapIntensity = 0.9;
+    // three's sheen dims the base and is lit only by the environment, which greys out baked fabrics;
+    // glTF also drops Blender's coat roughness, which turns a thin coat into a mirror veil
+    if (m.sheen) m.sheen = 0;
+    if (m.clearcoat) { m.clearcoat *= 0.6; m.clearcoatRoughness = Math.max(m.clearcoatRoughness, 0.3); }
+    // the oak floor: a thin satin lacquer that picks up the windows; stone tops a little crisper
+    if (name === 'OakFloor') { m.clearcoat = 0.32; m.clearcoatRoughness = 0.09; m.envMapIntensity = 1; }
+    if (['Marble', 'BlackMarble', 'Terrazzo'].includes(name)) { m.clearcoat = 0.3; m.clearcoatRoughness = 0.12; }
+  } else {
+    m.envMapIntensity = 1;
+  }
+  capMaterial(m, name);
+  const an = Math.min(LITE ? 4 : 8, renderer.capabilities.getMaxAnisotropy());
+  for (const k of ['map', 'normalMap', 'roughnessMap', 'metalnessMap', 'clearcoatNormalMap']) if (m[k]) m[k].anisotropy = an;
+  m.needsUpdate = true;
+  return m;
+}
+
+async function loadZone(key) {
+  await Promise.all(man.zones[key].files.map((f) => loadFile(key, f)));
+}
+// The zone files are glTF JSON with the geometry embedded as a base64 data: URI. Fetching data: URIs is not
+// allowed everywhere (the artifact frame's CSP), so the buffer is decoded here and repacked as a binary glTF.
+function jsonToGlb(json) {
+  const buf = json.buffers[0];
+  const bin = new Uint8Array(b64(buf.uri.slice(buf.uri.indexOf(',') + 1)));
+  delete buf.uri; buf.byteLength = bin.length;
+  let js = new TextEncoder().encode(JSON.stringify(json));
+  const jsPad = (4 - js.length % 4) % 4, binPad = (4 - bin.length % 4) % 4;
+  const total = 12 + 8 + js.length + jsPad + 8 + bin.length + binPad;
+  const out = new ArrayBuffer(total), dv = new DataView(out), u8 = new Uint8Array(out);
+  dv.setUint32(0, 0x46546C67, true); dv.setUint32(4, 2, true); dv.setUint32(8, total, true);
+  dv.setUint32(12, js.length + jsPad, true); dv.setUint32(16, 0x4E4F534A, true);
+  u8.set(js, 20); u8.fill(0x20, 20 + js.length, 20 + js.length + jsPad);
+  const o = 20 + js.length + jsPad;
+  dv.setUint32(o, bin.length + binPad, true); dv.setUint32(o + 4, 0x004E4942, true);
+  u8.set(bin, o + 8);
+  return out;
+}
+async function loadFile(key, file) {
+  const res = await fetch(file);
+  if (!res.ok) throw new Error(`${file}: ${res.status}`);
+  const json = await res.json();
+  bump();
+  const g = await gltfLoader.parseAsync(jsonToGlb(json), file.replace(/[^/]+$/, ''));
+  g.scene.traverse((o) => {
+    if (!o.isMesh) return;
+    o.material = Array.isArray(o.material) ? o.material.map((m) => prepareMaterial(m, key)) : prepareMaterial(o.material, key);
+    const mats = [].concat(o.material);
+    if (mats.includes(flameMat)) flames.push(o);
+    o.matrixAutoUpdate = false; o.updateMatrix();
+  });
+  g.scene.name = 'zone_' + file;
+  scene.add(g.scene);
+  bump();
+}
+
+/* ---------- Billboard trees and hedges (Cycles cut-outs, crossed planes) ---------- */
+function buildBillboards() {
+  const BB = man.billboards || {};
+  for (const [key, b] of Object.entries(BB)) {
+    const mk = (v) => {
+      const t = texLoader.load(`tex/${b[v].file}`, (tx) => capTexture(tx, 512)); t.colorSpace = T.SRGBColorSpace; t.anisotropy = 4;
+      return new T.MeshBasicMaterial({ map: t, alphaTest: 0.42, side: T.DoubleSide, toneMapped: true });
+    };
+    const [sx, sy, sz] = b.size;
+    const geoF = new T.PlaneGeometry(1, 1); geoF.translate(0, 0.5, 0);
+    const geoS = geoF.clone(); geoS.rotateY(PI / 2);
+    const n = b.instances.length;
+    const imF = new T.InstancedMesh(geoF, mk('f'), n), imS = new T.InstancedMesh(geoS, mk('s'), n);
+    const m4 = new T.Matrix4(), q = new T.Quaternion(), s = new T.Vector3(), p = new T.Vector3(), up = new T.Vector3(0, 1, 0);
+    b.instances.forEach((it, i) => {
+      p.fromArray(it.pos); q.setFromAxisAngle(up, it.rot);
+      s.set(sx * it.scale, sz * it.scale, 1); m4.compose(p, q, s); imF.setMatrixAt(i, m4);
+      s.set(1, sz * it.scale, sy * it.scale); m4.compose(p, q, s); imS.setMatrixAt(i, m4);
+    });
+    imF.frustumCulled = imS.frustumCulled = false;
+    scene.add(imF, imS);
+  }
+}
+
+/* ================= Sky and environments ================= */
+let outdoorEnv, skyTex;
+const roomEnv = {};
+async function loadSky() {
+  const j = await (await fetch(man.sky.file)).json();
+  bump();
+  const td = new RGBELoader().setDataType(T.HalfFloatType).parse(b64(j.hdr));
+  const t = new T.DataTexture(td.data, td.width, td.height, T.RGBAFormat, td.type);
+  t.colorSpace = T.LinearSRGBColorSpace; t.minFilter = t.magFilter = T.LinearFilter; t.generateMipmaps = false; t.flipY = true; t.needsUpdate = true;
+  t.mapping = T.EquirectangularReflectionMapping;
+  skyTex = t;
+  // the Blender world turns the sky about Z; three samples equirect maps half a turn apart
+  const rot = (man.sky.rotation || 0) + PI;
+  scene.background = t;
+  scene.backgroundRotation.set(0, rot, 0);
+  scene.environmentRotation.set(0, rot, 0);
+  outdoorEnv = pmrem.fromEquirectangular(t).texture;
+  scene.environment = outdoorEnv;
+}
+const ROOMS = { // Blender plan coordinates [x0, y0, x1, y1]
+  hall: [8.0, 2.2, 9.4, 9.6], study: [4.2, 2.2, 8.0, 6.2], living: [9.4, 2.2, 14.0, 8.0],
+  kitchen: [9.4, 8.0, 14.0, 13.6], bath: [4.2, 6.2, 8.0, 9.6], bed: [4.2, 9.6, 9.4, 13.6],
+};
+// The sun disc in the HDR is thousands of times brighter than the sky. Blurred into a rough reflection it would
+// lay a grey veil over every glossy surface, so the room captures see the sky with the sun clamped.
+function clampedSky(src, maxV = 3) {
+  const { data, width, height } = src.image, half = data instanceof Uint16Array;
+  const out = new Uint16Array(width * height * 4);
+  for (let i = 0; i < out.length; i++) {
+    const v = half ? T.DataUtils.fromHalfFloat(data[i]) : data[i];
+    out[i] = T.DataUtils.toHalfFloat((i & 3) === 3 ? 1 : Math.min(v, maxV));
+  }
+  const t = new T.DataTexture(out, width, height, T.RGBAFormat, T.HalfFloatType);
+  t.colorSpace = T.LinearSRGBColorSpace; t.minFilter = t.magFilter = T.LinearFilter; t.generateMipmaps = false;
+  t.flipY = src.flipY; t.mapping = T.EquirectangularReflectionMapping; t.needsUpdate = true;
+  return t;
+}
+function captureRoomEnvs() {
+  const rt = new T.WebGLCubeRenderTarget(256, { type: T.HalfFloatType });
+  const cam = new T.CubeCamera(0.05, 400, rt);
+  const soft = clampedSky(skyTex), softEnv = pmrem.fromEquirectangular(soft).texture;
+  const keepBg = scene.background;
+  scene.background = soft; scene.environment = softEnv;
+  scene.add(cam);
+  for (const [k, [x0, y0, x1, y1]] of Object.entries(ROOMS)) {
+    cam.position.copy(B((x0 + x1) / 2, (y0 + y1) / 2, 1.9));
+    cam.update(renderer, scene);
+    roomEnv[k] = pmrem.fromCubemap(rt.texture).texture;
+  }
+  scene.remove(cam); rt.dispose();
+  scene.background = keepBg; soft.dispose();
+  // room captures are a different PMREM size than the sky, so their shader variants compile here, not on first entry
+  scene.environment = roomEnv.hall;
+  precompile();
+  scene.environment = outdoorEnv;
+}
+// reflections and their projection box follow the room the camera is in
+function applyRoom(rk) {
+  envKey = rk; scene.environment = rk ? roomEnv[rk] || outdoorEnv : outdoorEnv;
+  if (rk) {
+    const [x0, y0, x1, y1] = ROOMS[rk];
+    BOX.boxMin.value.set(x0, 0.45, -y1); BOX.boxMax.value.set(x1, 3.35, -y0);
+    BOX.boxProbe.value.copy(B((x0 + x1) / 2, (y0 + y1) / 2, 1.9));
+  } else {
+    BOX.boxMin.value.setScalar(-1e4); BOX.boxMax.value.setScalar(1e4); BOX.boxProbe.value.set(0, 0, 0);
+  }
+}
+function roomAt(p) { // p in three coordinates
+  const x = p.x, y = -p.z;
+  if (p.y > 3.4) return null;
+  for (const [k, [x0, y0, x1, y1]] of Object.entries(ROOMS)) if (x >= x0 && x <= x1 && y >= y0 && y <= y1) return k;
+  return null;
+}
+
+/* ================= Camera path (Blender coordinates; z is height) ================= */
+const E = 1.95; // eye height indoors (floor at 0.45)
+const CP = [
+  [[6.2, -21.5, 1.65], 'exterior'],               // 0 THE HOUSE
+  [[8.7, -6.0, 1.7], [8.7, 4, 2.0]],
+  [[8.7, -0.4, 2.1], [8.7, 6, 1.95]],
+  [[8.7, 2.0, E], [8.7, 8, 1.9]],
+  [[8.7, 2.75, E], 'hall'],                        // 4 HALL
+  [[8.7, 6.95, E], [12, 6.95, 1.8]],
+  [[10.55, 6.95, E], [13, 5.2, 1.7]],              // through the opening, past the sofa end
+  [[10.95, 4.6, E], [13.3, 4.2, 1.6]],             // between sofa and coffee table, not over them
+  [[10.9, 3.15, E], [13.3, 5.5, 1.5]],             // round the sofa's front corner
+  [[9.75, 2.6, 1.9], 'living'],                    // 9 LIVING
+  [[11.2, 6.6, E], [11.7, 10, 1.7]],
+  [[11.7, 8.0, E], [12, 12, 1.6]],
+  [[10.05, 8.45, 2.05], 'kitchen'],                // 12 KITCHEN
+  [[9.95, 8.95, E], [8.0, 8.95, 1.9]],
+  [[9.4, 8.95, E], [7.5, 8.9, 1.9]],              // the middle of the kitchen opening, clear of the jamb
+  [[8.7, 8.4, E], [8.7, 4.5, 1.8]],
+  [[8.6, 5.05, E], [6.5, 4.5, 1.6]],
+  [[7.65, 5.1, E], 'study'],                       // 17 LIBRARY
+  [[8.6, 5.3, E], [8.7, 8, 1.8]],
+  [[8.6, 6.95, E], [6, 7.5, 1.6]],
+  [[7.55, 7.0, E], [5, 8.5, 1.5]],
+  [[7.6, 8.2, E], 'bath'],                         // 21 BATH
+  [[7.5, 7.0, E], [9, 7, 1.8]],
+  [[8.7, 7.4, E], [8.7, 11, 1.8]],
+  [[8.7, 9.9, E], [8.5, 13, 1.6]],
+  [[8.4, 13.2, E], 'bed'],                         // 25 BEDROOM
+  [[8.7, 10.2, E], [8.7, 8, 1.9]],
+  [[8.75, 8.95, E], [11, 9, 1.8]],
+  [[9.4, 8.95, E], [10.5, 10.5, 1.8]],
+  [[10.1, 9.3, E], [10.15, 14, 1.8]],
+  [[10.15, 12.9, E], [10.15, 18, 1.8]],
+  [[10.15, 14.6, 1.9], [11, 20, 1.7]],
+  [[13, 20, 1.8], [9.5, 12, 2.2]],
+  [[18.5, 27.5, 1.75], 'rear'],                    // 33 GARDEN
+  [[22, 32, 3.2], [9, 11, 2.4]],                   // 34 CONSULTATION
+];
+const SEC = [0, 4, 9, 12, 17, 21, 25, 33, 34];
+const SECT = 1.5;
+let posCurve, tgtCurve;
+function buildPath() {
+  const pos = [], tgt = [];
+  for (const [p, t] of CP) {
+    pos.push(B(...p));
+    if (typeof t === 'string') { const c = man.cameras[t]; tgt.push(new T.Vector3(...c.target)); } else tgt.push(B(...t));
+  }
+  // the manifest cameras are the exact Blender views
+  for (const [k, i] of [['exterior', 0], ['hall', 4], ['living', 9], ['kitchen', 12], ['study', 17], ['bath', 21], ['bed', 25], ['rear', 33]]) {
+    const c = man.cameras[k]; if (c) { pos[i].fromArray(c.pos); tgt[i].fromArray(c.target); }
+  }
+  posCurve = new T.CatmullRomCurve3(pos, false, 'centripetal');
+  tgtCurve = new T.CatmullRomCurve3(tgt, false, 'centripetal');
+}
+const EXPOSURE_EV = { hall: 1.9, study: 1.9, living: 1.6, kitchen: 1.6, bath: 1.8, bed: 1.8 };
+const OUT_EV = 0.45;
+
+const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v));
+const smooth = (t) => t * t * (3 - 2 * t);
+const smoothstep = (a, b, v) => smooth(clamp((v - a) / (b - a)));
+function scrollToS() {
+  const r = scrollY / (SECT * innerHeight), i = Math.floor(r), u = r - i;
+  if (i >= SEC.length - 1) return SEC.length - 1;
+  return i + smooth(clamp((u - .25) / .75));
+}
+function sToU(s) {
+  const i = Math.min(Math.floor(s), SEC.length - 2), f = s - i;
+  return (SEC[i] + (SEC[i + 1] - SEC[i]) * f) / (CP.length - 1);
+}
+function fitCamera() {
+  const w = innerWidth, h = innerHeight, aspect = w / h;
+  camera.aspect = aspect;
+  camera.fov = aspect < 1 ? 78 : aspect < 1.4 ? 68 : 60;
+  camera.updateProjectionMatrix();
+  renderer.setSize(w, h, false);
+  composer.setSize(w, h);
+  $('#track').style.height = `${((SEC.length - 1) * SECT + 1) * h}px`;
+}
+
+/* ================= Walk mode ================= */
+// walls as 2D segments in Blender plan coordinates, openings cut out
+const WALLS = [];
+const seg = (x0, y0, x1, y1) => WALLS.push([x0, y0, x1, y1]);
+function wallLine(x0, y0, x1, y1, holes = []) {
+  const alongX = y0 === y1, a0 = alongX ? x0 : y0, a1 = alongX ? x1 : y1;
+  let cur = a0;
+  for (const [h0, h1] of holes.sort((p, q) => p[0] - q[0])) { if (h0 > cur) alongX ? seg(cur, y0, h0, y0) : seg(x0, cur, x0, h0); cur = h1; }
+  if (cur < a1) alongX ? seg(cur, y0, a1, y0) : seg(x0, cur, x0, a1);
+}
+wallLine(4.2, 2.2, 14, 2.2, [[8.2, 9.2]]);
+wallLine(14, 2.2, 14, 13.6);
+wallLine(4.2, 13.6, 14, 13.6, [[9.55, 10.75]]);
+wallLine(4.2, 2.2, 4.2, 13.6);
+wallLine(8.0, 2.2, 8.0, 9.6, [[4.6, 5.5], [6.55, 7.35]]);
+wallLine(9.4, 2.2, 9.4, 9.6, [[6.2, 7.75], [8.45, 9.45]]);
+wallLine(4.2, 6.2, 8.0, 6.2);
+wallLine(4.2, 9.6, 9.4, 9.6, [[8.3, 9.1]]);
+wallLine(9.4, 9.6, 9.4, 13.6);
+wallLine(0, 0, 4.2, 0); wallLine(0, 0, 0, 6.2); wallLine(0, 6.2, 4.2, 6.2);
+const BOXES = [ // furniture footprints [x0, y0, x1, y1]
+  [9.65, 3.45, 10.65, 6.25], [11.2, 4.4, 12.3, 5.5], [10.55, 10.92, 12.65, 11.97], [10.7, 8.82, 12.7, 9.78],
+  [5.42, 9.7, 7.38, 11.86], [4.45, 7.45, 5.27, 9.15], [5.15, 3.92, 6.65, 4.68], [4.56, 6.26, 6.36, 6.78],
+  [8.72, 10.56, 9.34, 13.49], [13.2, 4.3, 14, 5.9], [13.47, 2.2, 14, 8.0], [11.0, 12.87, 14, 13.6], [13.25, 11.6, 14, 12.8],
+  [9.4, 7.79, 10.55, 8.21], [12.85, 7.79, 14, 8.21], [4.2, 2.2, 8.0, 2.86], [4.2, 5.78, 8.0, 6.2], [6.74, 8.5, 6.76, 9.6],
+];
+for (const [x0, y0, x1, y1] of BOXES) { seg(x0, y0, x1, y0); seg(x1, y0, x1, y1); seg(x1, y1, x0, y1); seg(x0, y1, x0, y0); }
+function floorAt(x, y) {
+  if (x >= 4.2 && x <= 14 && y >= 2.2 && y <= 13.6) return 0.45;
+  if (x >= 4.2 && x <= 14 && y >= 0 && y < 2.2) return 0.48;
+  if (x >= 7.8 && x <= 9.6 && y >= -0.8 && y < 0) return 0.48 * (y + 0.8) / 0.8;
+  if (x >= 8.1 && x <= 14.5 && y > 13.6 && y <= 17.2) return 0.43;
+  return 0;
+}
+const R = 0.28;
+function collide(px, py) {
+  for (let it = 0; it < 3; it++) {
+    for (const [x0, y0, x1, y1] of WALLS) {
+      const dx = x1 - x0, dy = y1 - y0, l2 = dx * dx + dy * dy || 1e-9;
+      const t = clamp(((px - x0) * dx + (py - y0) * dy) / l2);
+      const cx = x0 + dx * t, cy = y0 + dy * t, ex = px - cx, ey = py - cy, d = Math.hypot(ex, ey);
+      if (d < R) { const k = d > 1e-6 ? (R - d) / d : 0; px += ex * k; py += ey * k; }
+    }
+  }
+  return [clamp(px, -40, 50), clamp(py, -30, 45)];
+}
+const walk = { on: false, yaw: 0, pitch: 0, x: 0, y: 0, keys: new Set(), drag: null, hold: false };
+function setWalk(on) {
+  walk.on = on;
+  document.body.classList.toggle('walking', on);
+  $('#walk').setAttribute('aria-pressed', on ? 'true' : 'false');
+  $('#walk').textContent = on ? 'Zurück zum Rundgang' : 'Frei erkunden';
+  if (on) {
+    const d = new T.Vector3(); camera.getWorldDirection(d);
+    walk.yaw = Math.atan2(d.x, -d.z); walk.pitch = Math.asin(clamp(d.y, -1, 1));
+    walk.x = camera.position.x; walk.y = -camera.position.z;
+    [walk.x, walk.y] = collide(walk.x, walk.y);
+  } else {
+    fitCamera();
+  }
+}
+$('#walk').addEventListener('click', () => setWalk(!walk.on));
+addEventListener('keydown', (e) => {
+  if (e.target.closest && e.target.closest('input, textarea, dialog[open]')) return;
+  const k = e.key.toLowerCase();
+  if (['w', 'a', 's', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright'].includes(k)) {
+    if (!walk.on) { if (k.length === 1) setWalk(true); else return; }
+    walk.keys.add(k); e.preventDefault();
+  }
+  if (k === 'escape' && walk.on) setWalk(false);
+});
+addEventListener('keyup', (e) => walk.keys.delete(e.key.toLowerCase()));
+addEventListener('blur', () => walk.keys.clear());
+const canvasEl = $('#scene');
+let holdTimer = 0;
+canvasEl.addEventListener('pointerdown', (e) => {
+  if (!walk.on) return;
+  walk.drag = { x: e.clientX, y: e.clientY, moved: 0 };
+  canvasEl.setPointerCapture(e.pointerId);
+  if (e.pointerType === 'touch') { clearTimeout(holdTimer); holdTimer = setTimeout(() => { if (walk.drag && walk.drag.moved < 12) walk.hold = true; }, 260); }
+});
+canvasEl.addEventListener('pointermove', (e) => {
+  if (!walk.on || !walk.drag) return;
+  const dx = e.clientX - walk.drag.x, dy = e.clientY - walk.drag.y;
+  walk.drag.moved += Math.abs(dx) + Math.abs(dy);
+  walk.drag.x = e.clientX; walk.drag.y = e.clientY;
+  const k = (camera.fov * PI / 180) / innerHeight;
+  walk.yaw += dx * k; walk.pitch = clamp(walk.pitch - dy * k, -1.2, 1.2);
+});
+const endDrag = () => { walk.drag = null; walk.hold = false; clearTimeout(holdTimer); };
+canvasEl.addEventListener('pointerup', endDrag);
+canvasEl.addEventListener('pointercancel', endDrag);
+function stepWalk(dt) {
+  const f = (walk.keys.has('w') || walk.keys.has('arrowup') || walk.hold ? 1 : 0) - (walk.keys.has('s') || walk.keys.has('arrowdown') ? 1 : 0);
+  const sdir = (walk.keys.has('d') ? 1 : 0) - (walk.keys.has('a') ? 1 : 0);
+  const turn = (walk.keys.has('arrowright') ? 1 : 0) - (walk.keys.has('arrowleft') ? 1 : 0);
+  walk.yaw += turn * dt * 1.6;
+  const sp = 1.6 * dt;
+  const fx = Math.sin(walk.yaw), fy = Math.cos(walk.yaw);
+  let nx = walk.x + (fx * f + fy * sdir) * sp, ny = walk.y + (fy * f - fx * sdir) * sp;
+  [walk.x, walk.y] = collide(nx, ny);
+  const eye = floorAt(walk.x, walk.y) + 1.6;
+  camera.position.lerp(B(walk.x, walk.y, eye), 1 - Math.exp(-dt * 14));
+  const d = new T.Vector3(Math.sin(walk.yaw) * Math.cos(walk.pitch), Math.sin(walk.pitch), -Math.cos(walk.yaw) * Math.cos(walk.pitch));
+  camera.lookAt(camera.position.clone().add(d));
+}
+
+/* ================= UI ================= */
+const cards = $$('.card');
+const navBtns = $$('.rooms button');
+const planRooms = $$('.plan .rm'), planTexts = $$('.plan text[data-room]');
+const camMark = $('#cam');
+const statusText = $('#status-text'), statusStep = $('#status-step'), statusFill = $('#status-fill');
+const NAMES = ['Das Haus', 'Diele', 'Wohnzimmer', 'Küche', 'Bibliothek', 'Bad', 'Schlafzimmer', 'Garten', 'Ihr Projekt'];
+const VIEW_LABEL = { exterior: 'Das Haus von der Straße', hall: 'Diele', living: 'Wohnzimmer', kitchen: 'Küche und Essbereich', study: 'Bibliothek', bath: 'Bad', bed: 'Schlafzimmer', rear: 'Garten und Terrasse' };
+const ROOM_STOP = { hall: 1, living: 2, kitchen: 3, study: 4, bath: 5, bed: 6 };
+function goTo(i) {
+  if (walk.on) {
+    const k = ['exterior', 'hall', 'living', 'kitchen', 'study', 'bath', 'bed', 'rear', 'rear'][i];
+    const c = man && man.cameras[k];
+    if (c) {
+      camera.position.fromArray(c.pos); camera.lookAt(new T.Vector3(...c.target));
+      walk.x = c.pos[0]; walk.y = -c.pos[2];
+      const d = new T.Vector3(...c.target).sub(camera.position).normalize();
+      walk.yaw = Math.atan2(d.x, -d.z); walk.pitch = Math.asin(d.y);
+    }
+    return;
+  }
+  window.scrollTo({ top: i * SECT * innerHeight, behavior: reduceMotion ? 'auto' : 'smooth' });
+}
+$$('[data-go]').forEach((el) => {
+  const i = +el.dataset.go;
+  el.addEventListener('click', () => goTo(i));
+  if (el.tagName !== 'BUTTON') el.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); goTo(i); } });
+});
+$('#book').addEventListener('click', () => { $('#contact').hidden = false; });
+const lb = $('#lightbox'), lbImg = $('#lb-img');
+function openRender(k) {
+  const c = man.cameras[k];
+  if (!c || !c.render) return;
+  lbImg.src = c.render; lbImg.alt = `4K-Rendering: ${VIEW_LABEL[k]}`;
+  $('#lb-cap').textContent = VIEW_LABEL[k];
+  lb.classList.remove('zoom');
+  lb.showModal();
+}
+lbImg.addEventListener('click', () => lb.classList.toggle('zoom'));
+$('#lb-close').addEventListener('click', () => lb.close());
+lb.addEventListener('click', (e) => { if (e.target === lb) lb.close(); });
+function addRenderButtons() {
+  for (const card of cards) {
+    const k = card.dataset.view;
+    if (!k || card.dataset.i === '8' || !man.cameras[k] || !man.cameras[k].render) continue;
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'shot';
+    b.innerHTML = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><rect x="1.5" y="3" width="13" height="10"/><path d="M1.5 11l4-4 3 3 2-2 4 4"/></svg>4K-Rendering ansehen';
+    b.addEventListener('click', () => openRender(k));
+    card.appendChild(b);
+  }
+}
+
+/* ================= Boot ================= */
+const ptr = new T.Vector2(), look = new T.Vector2();
+addEventListener('pointermove', (e) => { ptr.set(e.clientX / innerWidth * 2 - 1, e.clientY / innerHeight * 2 - 1); }, { passive: true });
+addEventListener('resize', () => { fitCamera(); });
+const tick = () => new Promise((r) => setTimeout(r, 30));
+
+async function boot() {
+  try {
+    man = await (await fetch('manifest.json')).json();
+  } catch (e) { fail('Das Haus konnte nicht geladen werden. Prüfen Sie die Verbindung und laden Sie die Seite neu.'); throw e; }
+  const order = ['EXT', 'GROUND', 'FAR', 'hall', 'living', 'kitchen', 'study', 'bath', 'bed', 'VEG'].filter((k) => man.zones[k]);
+  progress.total = order.reduce((n, k) => n + man.zones[k].files.length * 2, 0) + 1;
+  buildPath();
+  fitCamera();
+  await loadSky();
+  // exterior first, then the rooms, a few at a time
+  for (let i = 0; i < order.length; i += 3) await Promise.all(order.slice(i, i + 3).map(loadZone));
+  buildBillboards();
+  note('Die Räume werden beleuchtet'); $('#load-bar').style.width = '94%';
+  await tick();
+  camera.position.set(9, 25, 40); camera.lookAt(9, 0, -8);
+  precompile();
+  captureRoomEnvs();
+  addRenderButtons();
+  sCur = scrollToS();
+  update(0);
+  renderFrame();
+  $('#load-bar').style.width = '100%';
+  requestAnimationFrame(() => { loaderEl.classList.add('done'); loaderEl.setAttribute('aria-hidden', 'true'); });
+  requestAnimationFrame(frame);
+  window.lindenWorld = { scene, camera, renderer, renderFrame, ready: true, posCurve, tgtCurve, SEC, CP, applyRoom, roomAt };   // handle for checks and embedding
+}
+
+/* ================= Loop ================= */
+let sCur = 0, lastActive = -1, envKey;
+const cardState = cards.map(() => ({ op: -1, shift: 0 }));
+const P = new T.Vector3(), Tg = new T.Vector3(), dir = new T.Vector3(), right = new T.Vector3(), UP = new T.Vector3(0, 1, 0);
+const clock = new T.Clock();
+
+function update(dt) {
+  if (walk.on) {
+    stepWalk(dt);
+    P.copy(camera.position);
+  } else {
+    const sTarget = scrollToS();
+    sCur += (sTarget - sCur) * (1 - Math.exp(-dt * (reduceMotion ? 12 : 3.2)));
+    if (Math.abs(sTarget - sCur) < 1e-4) sCur = sTarget;
+    const u = sToU(sCur);
+    posCurve.getPoint(u, P); tgtCurve.getPoint(u, Tg);
+    if (!reduceMotion) {
+      look.lerp(ptr, 1 - Math.exp(-dt * 2.2));
+      dir.subVectors(Tg, P).normalize();
+      right.crossVectors(dir, UP).normalize();
+      const amp = roomAt(P) ? .25 : .6;
+      Tg.addScaledVector(right, look.x * amp).addScaledVector(UP, -look.y * amp * .5);
+    }
+    camera.position.copy(P);
+    camera.lookAt(Tg);
+  }
+  const rk = roomAt(P);
+  if (rk !== envKey) applyRoom(rk);
+  const ev = rk ? EXPOSURE_EV[rk] : OUT_EV;
+  const exTarget = Math.pow(2, ev);
+  renderer.toneMappingExposure += (exTarget - renderer.toneMappingExposure) * (dt ? 1 - Math.exp(-dt * 3) : 1);
+  const tt = performance.now() / 1000;
+  flames.forEach((f, i) => { f.scale.set(1 + .04 * Math.sin(tt * 9 + i * 2), 1 + .07 * Math.sin(tt * 13 + i * 3) + .04 * Math.sin(tt * 31 + i), 1); f.updateMatrix(); });
+
+  if (!walk.on) {
+    cards.forEach((card, i) => {
+      const op = 1 - smoothstep(.1, .32, Math.abs(sCur - i));
+      const shift = reduceMotion ? 0 : clamp((i - sCur) * 90, -60, 60);
+      const st = cardState[i];
+      if (Math.abs(op - st.op) > .002 || Math.abs(shift - st.shift) > .3) {
+        st.op = op; st.shift = shift;
+        card.style.opacity = op.toFixed(3);
+        card.style.setProperty('--shift', `${shift.toFixed(1)}px`);
+        card.style.visibility = op < .01 ? 'hidden' : 'visible';
+        card.inert = op < .5;
+      }
+    });
+  }
+  const active = walk.on ? (rk ? ROOM_STOP[rk] : 0) : clamp(Math.round(sCur), 0, SEC.length - 1);
+  if (active !== lastActive) {
+    lastActive = active;
+    navBtns.forEach((b, i) => b.setAttribute('aria-current', i === active ? 'true' : 'false'));
+    planRooms.forEach((r) => r.classList.toggle('on', +r.dataset.room === active));
+    planTexts.forEach((t) => t.classList.toggle('on', +t.dataset.room === active));
+    statusText.textContent = NAMES[active];
+    statusStep.textContent = walk.on ? 'Freier Modus' : active === 0 ? 'Zum Gehen scrollen' : active >= 7 ? 'Außen' : `Raum ${String(active).padStart(2, '0')} / 06`;
+  }
+  statusFill.style.width = walk.on ? '100%' : `${(sCur / (SEC.length - 1) * 100).toFixed(1)}%`;
+  camMark.style.display = rk ? '' : 'none';
+  if (rk) {
+    camera.getWorldDirection(dir);
+    const yaw = Math.atan2(-dir.z, dir.x) * 180 / PI;   // plan: x right, y (Blender) down the page
+    const px = (P.x - 4.2) * 10, py = (-P.z - 2.2) * 10;
+    camMark.setAttribute('transform', `translate(${px.toFixed(1)} ${py.toFixed(1)}) rotate(${yaw.toFixed(1)})`);
+  }
+}
+
+// adaptive resolution: if the first seconds of real frames run slow, render fewer pixels
+const tune = { n: 0, acc: 0, done: false };
+function frame() {
+  const dt = Math.min(clock.getDelta(), .1);
+  update(dt);
+  renderFrame();
+  if (!tune.done && document.visibilityState === 'visible') {
+    if (++tune.n > 20) tune.acc += dt;
+    if (tune.n === 140) {
+      const avg = tune.acc / 120;
+      if (avg > 1 / 30 && dpr > 1) {
+        dpr = Math.max(1, dpr * (avg > 1 / 20 ? 0.6 : 0.8));
+        renderer.setPixelRatio(dpr); composer.setPixelRatio(dpr); fitCamera();
+      }
+      if (avg > 1 / 20) bloom.enabled = false;
+      tune.done = true;
+    }
+  }
+  requestAnimationFrame(frame);
+}
+
+boot().catch((e) => { console.error(e); if (!loaderEl.classList.contains('failed')) fail('Der Rundgang konnte in diesem Browser nicht starten.'); });
+</script>
+</html>
