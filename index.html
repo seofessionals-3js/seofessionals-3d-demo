@@ -165,6 +165,15 @@ body.walking .walk-toggle { background: transparent; color: var(--chrome-ink); b
 }
 .walk-hint b { color: var(--signal); font-weight: 500; }
 body.walking .walk-hint { opacity: 1; visibility: visible; }
+.sprint-toggle {
+  position: fixed; z-index: 4; right: calc(env(safe-area-inset-right, 0px) + 16px); bottom: calc(env(safe-area-inset-bottom, 0px) + 24px);
+  border: 0; padding: 12px 16px 11px; background: var(--chrome); color: var(--chrome-ink); cursor: pointer;
+  font: 700 14px/1 var(--display); text-transform: uppercase; letter-spacing: .06em; box-shadow: inset 0 0 0 1px rgba(241, 240, 236, .4);
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); opacity: 0; visibility: hidden; transition: opacity .3s, visibility .3s;
+}
+.sprint-toggle[aria-pressed="true"] { background: var(--signal); color: var(--signal-ink); box-shadow: none; }
+body.walking .sprint-toggle { opacity: 1; visibility: visible; }
+@media (max-width: 700px) { .walk-hint { bottom: calc(env(safe-area-inset-bottom, 0px) + 78px); max-width: calc(100vw - 32px); } }
 
 #loader {
   position: fixed; inset: 0; z-index: 20; display: grid; place-items: center;
@@ -244,9 +253,9 @@ dialog.lightbox::backdrop { background: rgba(0, 0, 0, .85); }
 </nav>
 
 <section class="card" data-i="0" data-view="exterior" aria-labelledby="t-hero">
-  <p class="eyebrow">Craftsman-Bungalow · 6 Räume · 112 m²</p>
+  <p class="eyebrow">Modernes Landhaus · 6 Räume · 112 m² · Pool</p>
   <h1 id="t-hero">Das Linden-Haus</h1>
-  <p class="lede">Ein Bungalow mit Holzverschalung und tiefer Veranda, in Blender gerendert und für den Browser gebacken. Scrollen Sie durch alle Räume oder verlassen Sie den Weg und erkunden Sie das Haus selbst.</p>
+  <p class="lede">Anthrazit-Fassade, Stehfalzdach und Zedernholz vor einem Alpenpanorama, in Blender gerendert und für den Browser gebacken. Scrollen Sie durch alle Räume oder erkunden Sie das Haus frei, die Haustür öffnet sich, wenn Sie näherkommen.</p>
   <div class="actions">
     <button type="button" class="cta" data-go="1">Eintreten</button>
     <p class="scroll-hint"><i></i>oder scrollen</p>
@@ -256,11 +265,11 @@ dialog.lightbox::backdrop { background: rgba(0, 0, 0, .85); }
 <section class="card" data-i="1" data-view="hall" aria-labelledby="t-hall">
   <p class="eyebrow">Raum 01 von 06 · 10,4 m²</p>
   <h2 id="t-hall">Diele</h2>
-  <p class="lede">Eine Galerie-Diele mit weißer Wandvertäfelung, einer Eichenbank mit Garderobenhaken an der Tür und vier gerahmten Drucken auf dem Weg ins Wohnzimmer.</p>
+  <p class="lede">Hinter der Eichen-Haustür eine helle Galerie-Diele: Einbauleuchten über vier gerahmten Drucken, eine Eichenbank am Eingang und ein heller Wollläufer ins offene Wohnzimmer.</p>
   <dl class="specs">
     <div><dt>Länge</dt><dd>7,4 m</dd></div>
-    <div><dt>Vertäfelung</dt><dd>Lackierte Leisten, 1,05 m</dd></div>
-    <div><dt>Läufer</dt><dd>Wolle, Marineblau</dd></div>
+    <div><dt>Haustür</dt><dd>Eiche, raumhoher Griff</dd></div>
+    <div><dt>Licht</dt><dd>5 Einbaustrahler</dd></div>
     <div><dt>Kunst</dt><dd>af Klint, Klee</dd></div>
   </dl>
 </section>
@@ -268,10 +277,10 @@ dialog.lightbox::backdrop { background: rgba(0, 0, 0, .85); }
 <section class="card" data-i="2" data-view="living" aria-labelledby="t-living">
   <p class="eyebrow">Raum 02 von 06 · 26,7 m²</p>
   <h2 id="t-living">Wohnzimmer</h2>
-  <p class="lede">Eichen-Kassettenbalken über einem Kalksteinkamin, eingerahmt von Einbauschränken unter den Seitenfenstern. Eine Kolonnade öffnet den Raum zum Essbereich.</p>
+  <p class="lede">Offener Wohnraum um einen langen, niedrigen Kamin in raumhohem Travertin. Leinensofa, zwei Loungesessel und ein Travertin-Tisch bilden die Sitzgruppe, dahinter geht der Raum ohne Wand in Essbereich und Küche über.</p>
   <dl class="specs">
-    <div><dt>Decke</dt><dd>2,90 m, Eichenbalken</dd></div>
-    <div><dt>Kamin</dt><dd>Kalkstein, Eichensims</dd></div>
+    <div><dt>Decke</dt><dd>2,90 m, Einbaustrahler</dd></div>
+    <div><dt>Kamin</dt><dd>Travertin, 1,6 m Feuerband</dd></div>
     <div><dt>Sitzplätze</dt><dd>Leinensofa, 2 Loungesessel</dd></div>
     <div><dt>Boden</dt><dd>Weißeiche-Dielen</dd></div>
   </dl>
@@ -280,11 +289,11 @@ dialog.lightbox::backdrop { background: rgba(0, 0, 0, .85); }
 <section class="card" data-i="3" data-view="kitchen" aria-labelledby="t-kitchen">
   <p class="eyebrow">Raum 03 von 06 · 25,8 m²</p>
   <h2 id="t-kitchen">Küche &amp; Essen</h2>
-  <p class="lede">Salbeigrüne Landhausfronten mit Spüle unter dem Fenster, eine Marmorinsel mit drei Hockern und ein Eichentisch an der Terrassentür.</p>
+  <p class="lede">Grifflose Eichenfronten unter einer Marmor-Rückwand, eine anthrazitfarbene Insel mit Marmor-Wangen und ein Eichentisch für sechs, frei im Raum zwischen Sofa und Insel.</p>
   <dl class="specs">
-    <div><dt>Fronten</dt><dd>Salbeigrün lackiert</dd></div>
+    <div><dt>Fronten</dt><dd>Eiche, grifflos</dd></div>
     <div><dt>Arbeitsplatten</dt><dd>Marmor, geschliffen, 40 mm</dd></div>
-    <div><dt>Rückwand</dt><dd>Grüne Glasurfliese</dd></div>
+    <div><dt>Insel</dt><dd>Anthrazit, Marmor-Wangen</dd></div>
     <div><dt>Tisch</dt><dd>Eiche, 6 Plätze</dd></div>
   </dl>
 </section>
@@ -292,7 +301,7 @@ dialog.lightbox::backdrop { background: rgba(0, 0, 0, .85); }
 <section class="card" data-i="4" data-view="study" aria-labelledby="t-study">
   <p class="eyebrow">Raum 04 von 06 · 15,2 m²</p>
   <h2 id="t-study">Bibliothek</h2>
-  <p class="lede">Raumhohe Einbauregale in tiefem Grün, eine Fensterbank mit Schubladen im vorderen Erker, ein Nussbaum-Schreibtisch und eine Bibliotheksleiter.</p>
+  <p class="lede">Raumhohe Einbauregale in Nussbaum, eine Fensterbank mit Schubladen unter dem Vorderfenster, ein Nussbaum-Schreibtisch und eine Bibliotheksleiter.</p>
   <dl class="specs">
     <div><dt>Regale</dt><dd>18 m Bücher</dd></div>
     <div><dt>Fensterbank</dt><dd>1,76 m, Leinenpolster</dd></div>
@@ -309,7 +318,7 @@ dialog.lightbox::backdrop { background: rgba(0, 0, 0, .85); }
     <div><dt>Wände</dt><dd>Glasurfliese bis 1,25 m</dd></div>
     <div><dt>Boden</dt><dd>Natursteinfliese</dd></div>
     <div><dt>Waschtisch</dt><dd>Eiche, Terrazzo</dd></div>
-    <div><dt>Armaturen</dt><dd>Gebürstetes Messing</dd></div>
+    <div><dt>Armaturen</dt><dd>Messing, Schwarz</dd></div>
   </dl>
 </section>
 
@@ -326,9 +335,9 @@ dialog.lightbox::backdrop { background: rgba(0, 0, 0, .85); }
 </section>
 
 <section class="card" data-i="7" data-view="rear" aria-labelledby="t-garden">
-  <p class="eyebrow">Außen · 23 m² Terrasse</p>
+  <p class="eyebrow">Außen · Terrasse · Pool 9 × 4 m</p>
   <h2 id="t-garden">Garten</h2>
-  <p class="lede">Die Terrassentür öffnet sich auf eine Steinterrasse mit Bistrotisch, gerahmt von einem Jacaranda und alten Bäumen. Der Kalksteinschornstein führt den Kamin auf der Gartenseite nach außen.</p>
+  <p class="lede">Die Terrassentür öffnet sich auf eine Steinterrasse mit Feuertisch zwischen zwei Zedernholz-Sofas. Dahinter ein Sonnendeck mit Liegen am Pool, eine hohe Hecke und die Berge am Horizont.</p>
 </section>
 
 <section class="card" data-i="8" data-view="rear" aria-labelledby="t-outro">
@@ -369,7 +378,8 @@ dialog.lightbox::backdrop { background: rgba(0, 0, 0, .85); }
   <div class="status-bar"><span id="status-fill"></span></div>
   <button type="button" class="walk-toggle" id="walk" aria-pressed="false">Frei erkunden</button>
 </div>
-<p class="walk-hint" id="walk-hint"><b>Ziehen</b> zum Umsehen · <b>W A S D</b> oder Pfeiltasten zum Gehen · am Handy <b>gedrückt halten</b> zum Vorwärtsgehen</p>
+<p class="walk-hint" id="walk-hint"><b>Ziehen</b> zum Umsehen · <b>W A S D</b> oder Pfeiltasten zum Gehen · <b>Shift</b> zum Sprinten · <b>E</b> oder Klick öffnet die Haustür · am Handy <b>gedrückt halten</b> zum Vorwärtsgehen</p>
+<button type="button" class="sprint-toggle" id="sprint" aria-pressed="false">Sprinten</button>
 
 <dialog class="lightbox" id="lightbox" aria-label="4K-Rendering">
   <figure>
@@ -503,22 +513,41 @@ const bakedShader = (shader) => {
     + shader.fragmentShader.replace('#include <envmap_physical_pars_fragment>', boxChunk);
 };
 const flames = [];
-function flameTexture() {
-  const c = document.createElement('canvas'); c.width = 128; c.height = 256;
-  const g = c.getContext('2d');
-  for (let i = 0; i < 9; i++) {
-    const x = 64 + (i - 4) * 9 + (i % 3 - 1) * 5, h = 150 + (i * 37 % 70);
-    const grd = g.createRadialGradient(x, 230, 2, x, 230 - h * .35, h * .55);
-    grd.addColorStop(0, 'rgba(255,240,200,.95)'); grd.addColorStop(.35, 'rgba(255,170,60,.75)'); grd.addColorStop(.75, 'rgba(230,80,20,.25)'); grd.addColorStop(1, 'rgba(200,40,10,0)');
-    g.fillStyle = grd; g.beginPath(); g.ellipse(x, 230 - h * .32, 16 + (i % 2) * 6, h * .42, 0, 0, PI * 2); g.fill();
-  }
-  const t = new T.CanvasTexture(c); t.colorSpace = T.SRGBColorSpace; return t;
+// Flames: animated value noise rising up each card, shaped into tongues by height and card-edge falloff,
+// coloured from deep orange at the burner to pale yellow; additive, so overlapping cards build a hot core.
+const flameUniforms = { uTime: { value: 0 } };
+function makeFlameMaterial() {
+  return new T.ShaderMaterial({
+    uniforms: flameUniforms, transparent: true, depthWrite: false, blending: T.AdditiveBlending, side: T.DoubleSide,
+    vertexShader: `varying vec2 vUv; varying float vSeed;
+      void main() { vUv = uv; vec4 wp = modelMatrix * vec4(position, 1.0); vSeed = fract(sin(dot(wp.xz, vec2(12.9898, 78.233))) * 43758.5453);
+        gl_Position = projectionMatrix * viewMatrix * wp; }`,
+    fragmentShader: `uniform float uTime; varying vec2 vUv; varying float vSeed;
+      float h(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+      float n(vec2 p) { vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
+        return mix(mix(h(i), h(i + vec2(1, 0)), f.x), mix(h(i + vec2(0, 1)), h(i + vec2(1, 1)), f.x), f.y); }
+      float fbm(vec2 p) { float s = 0.0, a = 0.55; for (int k = 0; k < 4; k++) { s += a * n(p); p = p * 2.03 + 1.7; a *= 0.5; } return s; }
+      void main() {
+        float t = uTime * 1.6 + vSeed * 10.0;
+        vec2 q = vec2(vUv.x * 5.0 + vSeed * 7.0, vUv.y * 2.2 - t);
+        float wob = fbm(vec2(vUv.y * 3.0 - t * 0.7, vSeed * 3.0)) - 0.5;
+        float x = abs(vUv.x - 0.5 + wob * 0.18 * vUv.y) * 2.0;
+        float body = fbm(q) * (1.0 - vUv.y * 1.05) * 1.35 - x * x * 0.9;
+        float a = smoothstep(0.08, 0.42, body);
+        float heat = clamp(body * 1.6, 0.0, 1.0);
+        vec3 col = mix(vec3(0.85, 0.16, 0.02), vec3(1.0, 0.55, 0.12), smoothstep(0.1, 0.5, heat));
+        col = mix(col, vec3(1.0, 0.86, 0.55), smoothstep(0.55, 0.95, heat));
+        gl_FragColor = vec4(col * a * 1.4, a);
+        #include <tonemapping_fragment>
+        #include <colorspace_fragment>
+      }`,
+  });
 }
 let flameMat = null;
 
 // LITE tier: scale textures down on the CPU before the first upload
 const HERO = ['OakFloor', 'Plaster', 'Ceiling', 'Limestone', 'Marble', 'Oak', 'OakBeam', 'Walnut', 'BathFloor', 'BathWall', 'Zellige',
-  'Terrazzo', 'Linen', 'LinenWhite', 'Rug', 'RugNavy', 'LimewashClay', 'LawnTex', 'Paving'];
+  'Terrazzo', 'Linen', 'LinenWhite', 'Rug', 'RugNavy', 'LimewashClay', 'LawnTex', 'Paving', 'DrivePavers', 'PathStone', 'Cedar', 'Travertine', 'DoorOak'];
 const capped = new WeakSet();
 function capTexture(t, cap) {
   if (!LITE || !t || capped.has(t) || !t.image) return;
@@ -548,10 +577,7 @@ function prepareMaterial(m, zone) {
     g.name = m.name; return g;
   }
   if (kind === 'flame') {
-    if (!flameMat) {
-      flameMat = new T.MeshBasicMaterial({ map: flameTexture(), transparent: true, depthWrite: false, blending: T.AdditiveBlending, side: T.DoubleSide });
-      flameMat.color.setScalar(0.9);
-    }
+    if (!flameMat) flameMat = makeFlameMaterial();
     return flameMat;
   }
   if (kind === 'sheer') {
@@ -665,6 +691,15 @@ async function loadSky() {
   // the Blender world turns the sky about Z; three samples equirect maps half a turn apart
   const rot = (man.sky.rotation || 0) + PI;
   scene.background = t;
+  // full-resolution backdrop (mountains, tree lines); the 2K HDR stays the light source
+  if (man.sky.bg) {
+    try {
+      const bg = await texLoader.loadAsync(man.sky.bg);
+      bg.colorSpace = T.SRGBColorSpace; bg.mapping = T.EquirectangularReflectionMapping; bg.anisotropy = 4;
+      capTexture(bg, 2048);
+      scene.background = bg; scene.backgroundIntensity = 1 / (man.sky.bgScale || 1);
+    } catch (e) { console.warn('backdrop', e); }
+  }
   scene.backgroundRotation.set(0, rot, 0);
   scene.environmentRotation.set(0, rot, 0);
   outdoorEnv = pmrem.fromEquirectangular(t).texture;
@@ -734,12 +769,12 @@ const CP = [
   [[8.7, 2.0, E], [8.7, 8, 1.9]],
   [[8.7, 2.75, E], 'hall'],                        // 4 HALL
   [[8.7, 6.95, E], [12, 6.95, 1.8]],
-  [[10.55, 6.95, E], [13, 5.2, 1.7]],              // through the opening, past the sofa end
-  [[10.95, 4.6, E], [13.3, 4.2, 1.6]],             // between sofa and coffee table, not over them
-  [[10.9, 3.15, E], [13.3, 5.5, 1.5]],             // round the sofa's front corner
+  [[10.4, 7.0, E], [13.6, 5.1, 1.5]],              // through the opening onto the walkway behind the sofa
+  [[11.9, 6.95, E], [13.6, 4.2, 1.5]],             // along the walkway, the fireplace opening up on the right
+  [[10.6, 2.8, E], [13.3, 5.6, 1.45]],             // round to the front corner
   [[9.75, 2.6, 1.9], 'living'],                    // 9 LIVING
-  [[11.2, 6.6, E], [11.7, 10, 1.7]],
-  [[11.7, 8.0, E], [12, 12, 1.6]],
+  [[11.2, 6.9, E], [11.7, 10, 1.7]],
+  [[10.2, 7.4, E], [12, 12, 1.6]],                 // past the end of the dining table
   [[10.05, 8.45, 2.05], 'kitchen'],                // 12 KITCHEN
   [[9.95, 8.95, E], [8.0, 8.95, 1.9]],
   [[9.4, 8.95, E], [7.5, 8.9, 1.9]],              // the middle of the kitchen opening, clear of the jamb
@@ -780,8 +815,19 @@ function buildPath() {
   posCurve = new T.CatmullRomCurve3(pos, false, 'centripetal');
   tgtCurve = new T.CatmullRomCurve3(tgt, false, 'centripetal');
 }
-const EXPOSURE_EV = { hall: 1.9, study: 1.9, living: 1.6, kitchen: 1.6, bath: 1.8, bed: 1.8 };
-const OUT_EV = 0.45;
+const IN_EV = 1.9, OUT_EV = 0.45;
+// openings between inside and outside (three coordinates come in, Blender plan coordinates are compared)
+const PORTALS = [[8.7, 2.2], [10.15, 13.6]];
+function exposureAt(p) {
+  const x = p.x, y = -p.z;
+  const inside = roomAt(p) !== null;
+  let d = 1e9;
+  for (const [px, py] of PORTALS) d = Math.min(d, Math.hypot(x - px, y - py));
+  // within 1.5 m of the front or garden door the eye is half adapted to either side
+  const k = smoothstep(0, 1.5, d);
+  const mid = (IN_EV + OUT_EV) / 2;
+  return inside ? mid + (IN_EV - mid) * k : mid + (OUT_EV - mid) * k;
+}
 
 const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v));
 const smooth = (t) => t * t * (3 - 2 * t);
@@ -826,23 +872,28 @@ wallLine(4.2, 9.6, 9.4, 9.6, [[8.3, 9.1]]);
 wallLine(9.4, 9.6, 9.4, 13.6);
 wallLine(0, 0, 4.2, 0); wallLine(0, 0, 0, 6.2); wallLine(0, 6.2, 4.2, 6.2);
 const BOXES = [ // furniture footprints [x0, y0, x1, y1]
-  [9.65, 3.45, 10.65, 6.25], [11.2, 4.4, 12.3, 5.5], [10.55, 10.92, 12.65, 11.97], [10.7, 8.82, 12.7, 9.78],
+  [9.65, 3.7, 10.65, 6.5], [11.0, 4.55, 12.1, 5.65], [10.62, 2.7, 11.38, 3.42], [12.08, 2.82, 12.82, 3.58],   // sofa, table, chairs
+  [10.5, 7.5, 12.9, 9.12], [10.45, 10.42, 13.05, 11.48],                                                       // dining, island
   [5.42, 9.7, 7.38, 11.86], [4.45, 7.45, 5.27, 9.15], [5.15, 3.92, 6.65, 4.68], [4.56, 6.26, 6.36, 6.78],
-  [8.72, 10.56, 9.34, 13.49], [13.2, 4.3, 14, 5.9], [13.47, 2.2, 14, 8.0], [11.0, 12.87, 14, 13.6], [13.25, 11.6, 14, 12.8],
-  [9.4, 7.79, 10.55, 8.21], [12.85, 7.79, 14, 8.21], [4.2, 2.2, 8.0, 2.86], [4.2, 5.78, 8.0, 6.2], [6.74, 8.5, 6.76, 9.6],
+  [8.72, 10.56, 9.34, 13.49], [13.25, 3.9, 14, 6.3], [13.47, 2.2, 14, 8.6], [11.0, 12.87, 14, 13.6], [13.25, 11.6, 14, 12.8],
+  [4.2, 2.2, 8.0, 2.86], [4.2, 5.78, 8.0, 6.2], [6.74, 8.5, 6.76, 9.6],
+  [13.15, 18.65, 22.85, 23.35], [11.35, 14.4, 14.3, 16.4], [8.25, 16.45, 8.85, 17.05], [13.85, 16.55, 14.45, 17.15], // pool, lounge, planters
+  [-14, -19.25, -0.6, -18.95], [4.8, -19.25, 7.4, -18.95], [10, -19.25, 26, -18.95],                                   // entry wall
 ];
 for (const [x0, y0, x1, y1] of BOXES) { seg(x0, y0, x1, y0); seg(x1, y0, x1, y1); seg(x1, y1, x0, y1); seg(x0, y1, x0, y0); }
 function floorAt(x, y) {
   if (x >= 4.2 && x <= 14 && y >= 2.2 && y <= 13.6) return 0.45;
   if (x >= 4.2 && x <= 14 && y >= 0 && y < 2.2) return 0.48;
-  if (x >= 7.8 && x <= 9.6 && y >= -0.8 && y < 0) return 0.48 * (y + 0.8) / 0.8;
+  if (x >= 7.5 && x <= 9.9 && y >= -1.25 && y < 0) return 0.45 * (y + 1.25) / 1.25;
   if (x >= 8.1 && x <= 14.5 && y > 13.6 && y <= 17.2) return 0.43;
   return 0;
 }
 const R = 0.28;
+const DOOR_SEG = [8.2, 2.2, 9.2, 2.2];
 function collide(px, py) {
   for (let it = 0; it < 3; it++) {
-    for (const [x0, y0, x1, y1] of WALLS) {
+    const segs = door.pivot && Math.abs(door.angle) < 0.7 ? WALLS.concat([DOOR_SEG]) : WALLS;
+    for (const [x0, y0, x1, y1] of segs) {
       const dx = x1 - x0, dy = y1 - y0, l2 = dx * dx + dy * dy || 1e-9;
       const t = clamp(((px - x0) * dx + (py - y0) * dy) / l2);
       const cx = x0 + dx * t, cy = y0 + dy * t, ex = px - cx, ey = py - cy, d = Math.hypot(ex, ey);
@@ -851,7 +902,9 @@ function collide(px, py) {
   }
   return [clamp(px, -40, 50), clamp(py, -30, 45)];
 }
-const walk = { on: false, yaw: 0, pitch: 0, x: 0, y: 0, keys: new Set(), drag: null, hold: false };
+const walk = { on: false, yaw: 0, pitch: 0, x: 0, y: 0, keys: new Set(), drag: null, hold: false, sprint: false };
+const sprintBtn = $('#sprint');
+sprintBtn.addEventListener('click', () => { walk.sprint = !walk.sprint; sprintBtn.setAttribute('aria-pressed', walk.sprint ? 'true' : 'false'); });
 function setWalk(on) {
   walk.on = on;
   document.body.classList.toggle('walking', on);
@@ -874,6 +927,8 @@ addEventListener('keydown', (e) => {
     if (!walk.on) { if (k.length === 1) setWalk(true); else return; }
     walk.keys.add(k); e.preventDefault();
   }
+  if (k === 'shift') walk.keys.add('shift');
+  if (k === 'e' && door.pivot && Math.hypot(P.x - 8.7, -P.z - 2.2) < 4) setDoor(!door.open, true);
   if (k === 'escape' && walk.on) setWalk(false);
 });
 addEventListener('keyup', (e) => walk.keys.delete(e.key.toLowerCase()));
@@ -902,7 +957,7 @@ function stepWalk(dt) {
   const sdir = (walk.keys.has('d') ? 1 : 0) - (walk.keys.has('a') ? 1 : 0);
   const turn = (walk.keys.has('arrowright') ? 1 : 0) - (walk.keys.has('arrowleft') ? 1 : 0);
   walk.yaw += turn * dt * 1.6;
-  const sp = 1.6 * dt;
+  const sp = (walk.keys.has('shift') || walk.sprint ? 3.6 : 1.6) * dt;
   const fx = Math.sin(walk.yaw), fy = Math.cos(walk.yaw);
   let nx = walk.x + (fx * f + fy * sdir) * sp, ny = walk.y + (fy * f - fx * sdir) * sp;
   [walk.x, walk.y] = collide(nx, ny);
@@ -911,6 +966,103 @@ function stepWalk(dt) {
   const d = new T.Vector3(Math.sin(walk.yaw) * Math.cos(walk.pitch), Math.sin(walk.pitch), -Math.cos(walk.yaw) * Math.cos(walk.pitch));
   camera.lookAt(camera.position.clone().add(d));
 }
+
+/* ================= Front door: swings open as you approach (or on click / E), with sound ================= */
+const door = { pivot: null, angle: 0, from: 0, t: 1, open: false, manualUntil: 0, meshes: [] };
+const DOOR_OPEN = -1.45;          // radians about the hinge; negative swings the leaf into the hall
+function setupDoor() {
+  const z = scene.getObjectByName('zone_models/DOOR_fx.json');
+  if (!z) return;
+  const meshes = []; z.traverse((o) => { if (o.isMesh) meshes.push(o); });
+  if (!meshes.length) return;
+  const box = new T.Box3(); meshes.forEach((m) => box.expandByObject(m));
+  const pivot = new T.Group();
+  pivot.position.set(box.max.x, box.min.y, (box.min.z + box.max.z) / 2);    // hinge on the right-hand jamb
+  scene.add(pivot); pivot.updateMatrixWorld(true);
+  meshes.forEach((m) => { pivot.attach(m); m.matrixAutoUpdate = true; m.updateMatrix(); });
+  door.pivot = pivot; door.meshes = meshes;
+}
+let actx = null;
+function audio() {
+  if (!actx) { const C = window.AudioContext || window.webkitAudioContext; if (C) actx = new C(); }
+  if (actx && actx.state === 'suspended') actx.resume();
+  return actx;
+}
+['pointerdown', 'keydown', 'touchend'].forEach((ev) => addEventListener(ev, audio, { passive: true }));
+function noise(a, dur) {
+  const b = a.createBuffer(1, Math.ceil(a.sampleRate * dur), a.sampleRate), d = b.getChannelData(0);
+  for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+  return b;
+}
+function sfx(kind) {
+  const a = actx;
+  if (!a || a.state !== 'running') return;
+  const t0 = a.currentTime + 0.01, out = a.createGain(); out.gain.value = 0.55; out.connect(a.destination);
+  const click = (t, f, v) => {        // latch: a short band-passed tick
+    const s = a.createBufferSource(); s.buffer = noise(a, 0.06);
+    const bf = a.createBiquadFilter(); bf.type = 'bandpass'; bf.frequency.value = f; bf.Q.value = 4;
+    const g = a.createGain(); g.gain.setValueAtTime(v, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.055);
+    s.connect(bf).connect(g).connect(out); s.start(t);
+  };
+  if (kind === 'open' || kind === 'closing') {
+    if (kind === 'open') click(t0, 2600, 0.9);
+    // hinge: a wavering sawtooth through a narrow resonance, faded in and out over the swing
+    const o = a.createOscillator(); o.type = 'sawtooth';
+    o.frequency.setValueAtTime(kind === 'open' ? 150 : 210, t0); o.frequency.linearRampToValueAtTime(kind === 'open' ? 230 : 140, t0 + 0.8);
+    const lfo = a.createOscillator(); lfo.frequency.value = 19; const lg = a.createGain(); lg.gain.value = 14;
+    lfo.connect(lg).connect(o.frequency);
+    const bf = a.createBiquadFilter(); bf.type = 'bandpass'; bf.frequency.value = 1100; bf.Q.value = 9;
+    const g = a.createGain(); g.gain.setValueAtTime(0.0001, t0); g.gain.linearRampToValueAtTime(0.045, t0 + 0.15); g.gain.linearRampToValueAtTime(0.0001, t0 + 0.8);
+    // air moving with the leaf
+    const w = a.createBufferSource(); w.buffer = noise(a, 0.9);
+    const wf = a.createBiquadFilter(); wf.type = 'lowpass'; wf.frequency.value = 500;
+    const wg = a.createGain(); wg.gain.setValueAtTime(0.0001, t0); wg.gain.linearRampToValueAtTime(0.08, t0 + 0.35); wg.gain.linearRampToValueAtTime(0.0001, t0 + 0.9);
+    o.connect(bf).connect(g).connect(out); w.connect(wf).connect(wg).connect(out);
+    o.start(t0); lfo.start(t0); w.start(t0); o.stop(t0 + 0.85); lfo.stop(t0 + 0.85);
+  } else if (kind === 'shut') {
+    // heavy oak slab meeting the frame: a low thump plus the latch
+    const th = a.createOscillator(); th.type = 'sine';
+    th.frequency.setValueAtTime(95, t0); th.frequency.exponentialRampToValueAtTime(42, t0 + 0.25);
+    const tg = a.createGain(); tg.gain.setValueAtTime(0.0001, t0); tg.gain.exponentialRampToValueAtTime(0.9, t0 + 0.012); tg.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.32);
+    const s = a.createBufferSource(); s.buffer = noise(a, 0.12);
+    const lf = a.createBiquadFilter(); lf.type = 'lowpass'; lf.frequency.value = 900;
+    const sg = a.createGain(); sg.gain.setValueAtTime(0.5, t0); sg.gain.exponentialRampToValueAtTime(0.001, t0 + 0.12);
+    th.connect(tg).connect(out); s.connect(lf).connect(sg).connect(out);
+    th.start(t0); th.stop(t0 + 0.35); s.start(t0);
+    click(t0 + 0.03, 3200, 0.6);
+  }
+}
+function setDoor(open, manual) {
+  if (!door.pivot || door.open === open) return;
+  door.open = open; door.from = door.angle; door.t = 0;
+  if (manual) door.manualUntil = performance.now() + 8000;
+  sfx(open ? 'open' : 'closing');
+}
+function stepDoor(dt) {
+  if (!door.pivot) return;
+  if (performance.now() > door.manualUntil) {
+    const d = Math.hypot(P.x - 8.7, -P.z - 2.2);
+    if (!door.open && d < 2.4) setDoor(true);
+    else if (door.open && d > 3.6) setDoor(false);
+  }
+  if (door.t < 1) {
+    door.t = Math.min(1, door.t + dt / 1.0);
+    door.angle = door.from + ((door.open ? DOOR_OPEN : 0) - door.from) * smooth(door.t);
+    door.pivot.rotation.y = door.angle;
+    if (door.t === 1 && !door.open) sfx('shut');
+  }
+}
+const ray = new T.Raycaster(), rayPt = new T.Vector2();
+let downAt = null;
+canvasEl.addEventListener('pointerdown', (e) => { downAt = [e.clientX, e.clientY]; });
+canvasEl.addEventListener('click', (e) => {
+  if (!door.pivot || !downAt || Math.hypot(e.clientX - downAt[0], e.clientY - downAt[1]) > 6) return;
+  const r = canvasEl.getBoundingClientRect();
+  rayPt.set((e.clientX - r.left) / r.width * 2 - 1, -(e.clientY - r.top) / r.height * 2 + 1);
+  ray.setFromCamera(rayPt, camera);
+  const hit = ray.intersectObjects(door.meshes, false)[0];
+  if (hit && hit.distance < 8) setDoor(!door.open, true);
+});
 
 /* ================= UI ================= */
 const cards = $$('.card');
@@ -975,7 +1127,7 @@ async function boot() {
   try {
     man = await (await fetch('manifest.json')).json();
   } catch (e) { fail('Das Haus konnte nicht geladen werden. Prüfen Sie die Verbindung und laden Sie die Seite neu.'); throw e; }
-  const order = ['EXT', 'GROUND', 'FAR', 'hall', 'living', 'kitchen', 'study', 'bath', 'bed', 'VEG'].filter((k) => man.zones[k]);
+  const order = ['EXT', 'GROUND', 'FAR', 'DOOR', 'hall', 'living', 'kitchen', 'study', 'bath', 'bed', 'VEG'].filter((k) => man.zones[k]);
   progress.total = order.reduce((n, k) => n + man.zones[k].files.length * 2, 0) + 1;
   buildPath();
   fitCamera();
@@ -983,6 +1135,7 @@ async function boot() {
   // exterior first, then the rooms, a few at a time
   for (let i = 0; i < order.length; i += 3) await Promise.all(order.slice(i, i + 3).map(loadZone));
   buildBillboards();
+  setupDoor();
   note('Die Räume werden beleuchtet'); $('#load-bar').style.width = '94%';
   await tick();
   camera.position.set(9, 25, 40); camera.lookAt(9, 0, -8);
@@ -995,7 +1148,7 @@ async function boot() {
   $('#load-bar').style.width = '100%';
   requestAnimationFrame(() => { loaderEl.classList.add('done'); loaderEl.setAttribute('aria-hidden', 'true'); });
   requestAnimationFrame(frame);
-  window.lindenWorld = { scene, camera, renderer, renderFrame, ready: true, posCurve, tgtCurve, SEC, CP, applyRoom, roomAt };   // handle for checks and embedding
+  window.lindenWorld = { scene, camera, renderer, renderFrame, ready: true, posCurve, tgtCurve, SEC, CP, applyRoom, roomAt, door, setDoor };   // handle for checks and embedding
 }
 
 /* ================= Loop ================= */
@@ -1026,11 +1179,13 @@ function update(dt) {
   }
   const rk = roomAt(P);
   if (rk !== envKey) applyRoom(rk);
-  const ev = rk ? EXPOSURE_EV[rk] : OUT_EV;
+  // one interior exposure for every room (rooms seen through openings match); indoors/outdoors blend with the
+  // distance from the nearest opening instead of switching at the threshold
+  const ev = exposureAt(P);
   const exTarget = Math.pow(2, ev);
-  renderer.toneMappingExposure += (exTarget - renderer.toneMappingExposure) * (dt ? 1 - Math.exp(-dt * 3) : 1);
-  const tt = performance.now() / 1000;
-  flames.forEach((f, i) => { f.scale.set(1 + .04 * Math.sin(tt * 9 + i * 2), 1 + .07 * Math.sin(tt * 13 + i * 3) + .04 * Math.sin(tt * 31 + i), 1); f.updateMatrix(); });
+  renderer.toneMappingExposure += (exTarget - renderer.toneMappingExposure) * (dt ? 1 - Math.exp(-dt * 2.2) : 1);
+  flameUniforms.uTime.value = performance.now() / 1000;
+  stepDoor(dt);
 
   if (!walk.on) {
     cards.forEach((card, i) => {
