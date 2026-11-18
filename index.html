@@ -657,7 +657,7 @@ const BOX = { boxMin: { value: new T.Vector3(-1e4, -1e4, -1e4) }, boxMax: { valu
 const REFLECT_LINE = 'reflectVec = inverseTransformDirection( reflectVec, viewMatrix );';
 const BOX_OK = T.ShaderChunk.envmap_physical_pars_fragment.includes(REFLECT_LINE);
 const boxChunk = T.ShaderChunk.envmap_physical_pars_fragment.replace(REFLECT_LINE, `${REFLECT_LINE}
-    {
+    if ( all( greaterThan( vBoxPos, boxMin - 0.25 ) ) && all( lessThan( vBoxPos, boxMax + 0.25 ) ) ) {
       vec3 bMax = ( boxMax - vBoxPos ) / reflectVec;
       vec3 bMin = ( boxMin - vBoxPos ) / reflectVec;
       vec3 bFar = max( bMax, bMin );
@@ -741,7 +741,8 @@ let flameMat = null;
 
 // LITE tier: scale textures down on the CPU before the first upload
 const HERO = ['OakFloor', 'Plaster', 'Ceiling', 'Limestone', 'Marble', 'Oak', 'OakBeam', 'Walnut', 'BathFloor', 'BathWall', 'Zellige',
-  'Terrazzo', 'Linen', 'LinenWhite', 'Rug', 'RugNavy', 'LimewashClay', 'LawnTex', 'Paving', 'DrivePavers', 'PathStone', 'Cedar', 'Travertine', 'DoorOak'];
+  'Terrazzo', 'Linen', 'LinenWhite', 'Rug', 'RugNavy', 'LimewashClay', 'LawnTex', 'Paving', 'DrivePavers', 'PathStone', 'Cedar', 'Travertine', 'DoorOak',
+  'OakFloorDark', 'OakFloorWarm', 'RockWall', 'GarageConcrete', 'GarageWall'];
 const capped = new WeakSet();
 function capTexture(t, cap) {
   return;   // tiers ship pre-sized files (tex_sd for SD); scaling on the device only cost memory
@@ -805,7 +806,6 @@ function prepareMaterial(m, zone) {
     if (name === 'LawnTex') { m.color.setRGB(0.6, 0.62, 0.55); }   // flat plane vs self-shadowing grass blades in Cycles
     // grass, gravel and pavers are matte at grazing angles: no sky sheen washing them out
     if (['LawnTex', 'Gravel', 'DrivePavers', 'Soil'].includes(name)) { m.roughness = 1; m.envMapIntensity = 0.15; if ('specularIntensity' in m) m.specularIntensity = 0.25; }
-    if (['Plaster', 'Ceiling'].includes(name) && m.normalScale) m.normalScale.multiplyScalar(0.45);
     if (['Marble', 'BlackMarble', 'Terrazzo'].includes(name)) { m.clearcoat = 0.3; m.clearcoatRoughness = 0.12; }
   } else {
     m.envMapIntensity = 1;
@@ -813,6 +813,7 @@ function prepareMaterial(m, zone) {
   if (name === 'Brass') { m.roughness = Math.min(m.roughness, 0.45); m.metalness = 1; }
   if (name === 'Bulb' && m.emissiveIntensity) m.emissiveIntensity *= 0.3;
   if (name === 'Shade' && m.emissiveIntensity) m.emissiveIntensity *= 0.45;
+  if (name === 'LedStrip' && m.emissiveIntensity) m.emissiveIntensity = Math.min(m.emissiveIntensity, 1.2);
   if (/^(Linen|Boucle|Knit|WoolRust|Towel|VelvetMoss|PorchCushion)/.test(name) && m.normalScale) m.normalScale.multiplyScalar(0.45);
   capMaterial(m, name);
   const an = Math.min(SD ? 4 : MAX ? 16 : 8, renderer.capabilities.getMaxAnisotropy());
@@ -907,7 +908,8 @@ async function loadFile(key, file) {
     o.matrixAutoUpdate = false; o.updateMatrix();
   });
   g.scene.name = 'zone_' + file;
-  if (key === 'FAR') g.scene.traverse((o) => { if (o.isMesh) { o.position.y -= 0.25; o.updateMatrix(); } });
+  // the far lawn sits 2 cm under the near one: a depth bias instead of lowering it keeps the trees standing on it
+  if (key === 'FAR') g.scene.traverse((o) => { if (o.isMesh) for (const m of [].concat(o.material)) { m.polygonOffset = true; m.polygonOffsetFactor = 1; m.polygonOffsetUnits = 4; } });
   scene.add(g.scene);
   bump();
 }
@@ -997,6 +999,11 @@ function captureRoomEnvs() {
     cam.update(renderer, scene);
     roomEnv[k] = pmrem.fromCubemap(rt.texture).texture;
   }
+  // the open sky in the same layout, so leaving the house fades too
+  const sky = new T.Scene(); sky.background = skyTex; sky.backgroundRotation.copy(scene.backgroundRotation);
+  cam.update(renderer, sky);
+  envMix.outCube = pmrem.fromCubemap(rt.texture).texture;
+  setupEnvMix(roomEnv.hall);
   scene.remove(cam); rt.dispose();
   scene.background = keepBg; soft.dispose();
   // room captures are a different PMREM size than the sky, so their shader variants compile here, not on first entry
@@ -1004,16 +1011,75 @@ function captureRoomEnvs() {
   precompile();
   scene.environment = outdoorEnv;
 }
-// reflections and their projection box follow the room the camera is in
+// Reflections and their projection box follow the room the camera is in. They fade instead of switching: a hard
+// swap of the captured environment made furniture and the lacquered floors jump in brightness at every doorway.
+// All captures share one PMREM layout, so a full-screen pass mixes the previous and the next one into the
+// environment the materials sample (captured in world space, so it is sampled without the sky's rotation).
+const ENV_FADE = 0.8;
+const ease = (t) => t * t * (3 - 2 * t);
+const envMix = { rt: null, snaps: [], snap: 0, scene: null, cam: null, mat: null, from: null, to: null, t: 1, outCube: null,
+  b0: [new T.Vector3(), new T.Vector3(), new T.Vector3()], b1: [new T.Vector3(), new T.Vector3(), new T.Vector3()] };
+function makeEnvRT(w, h) {
+  const rt = new T.WebGLRenderTarget(w, h, { type: T.HalfFloatType, format: T.RGBAFormat, colorSpace: T.LinearSRGBColorSpace,
+    depthBuffer: false, magFilter: T.LinearFilter, minFilter: T.LinearFilter, generateMipmaps: false });
+  rt.texture.mapping = T.CubeUVReflectionMapping;
+  return rt;
+}
+function setupEnvMix(sample) {
+  const { width: w, height: h } = sample.image;
+  envMix.rt = makeEnvRT(w, h); envMix.snaps = [makeEnvRT(w, h), makeEnvRT(w, h)];
+  envMix.mat = new T.ShaderMaterial({ uniforms: { a: { value: null }, b: { value: null }, t: { value: 0 } },
+    vertexShader: 'varying vec2 vUv;\nvoid main() { vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }',
+    fragmentShader: 'uniform sampler2D a;\nuniform sampler2D b;\nuniform float t;\nvarying vec2 vUv;\nvoid main() { gl_FragColor = mix(texture2D(a, vUv), texture2D(b, vUv), t); }',
+    depthTest: false, depthWrite: false, toneMapped: false });
+  envMix.scene = new T.Scene();
+  const q = new T.Mesh(new T.PlaneGeometry(2, 2), envMix.mat); q.frustumCulled = false; envMix.scene.add(q);
+  envMix.cam = new T.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+}
+function mixInto(rt, a, b, t) {
+  const u = envMix.mat.uniforms; u.a.value = a; u.b.value = b; u.t.value = t;
+  const keep = renderer.getRenderTarget();
+  renderer.setRenderTarget(rt); renderer.render(envMix.scene, envMix.cam); renderer.setRenderTarget(keep);
+}
+function boxOf(rk, o) {
+  const [x0, y0, x1, y1] = ROOMS[rk];
+  o[0].set(x0, 0.45, -y1); o[1].set(x1, 3.35, -y0); o[2].copy(B((x0 + x1) / 2, (y0 + y1) / 2, 1.9));
+}
+function setBoxes(v) { BOX.boxMin.value.copy(v[0]); BOX.boxMax.value.copy(v[1]); BOX.boxProbe.value.copy(v[2]); }
+function openSky() {
+  scene.environment = outdoorEnv; scene.environmentRotation.y = scene.backgroundRotation.y;
+  BOX.boxMin.value.setScalar(-1e4); BOX.boxMax.value.setScalar(1e4); BOX.boxProbe.value.set(0, 0, 0);
+}
 function applyRoom(rk) {
-  envKey = rk; scene.environment = rk ? roomEnv[rk] || outdoorEnv : outdoorEnv;
-  if (rk) {
-    const [x0, y0, x1, y1] = ROOMS[rk];
-    BOX.boxMin.value.set(x0, 0.45, -y1); BOX.boxMax.value.set(x1, 3.35, -y0);
-    BOX.boxProbe.value.copy(B((x0 + x1) / 2, (y0 + y1) / 2, 1.9));
-  } else {
-    BOX.boxMin.value.setScalar(-1e4); BOX.boxMax.value.setScalar(1e4); BOX.boxProbe.value.set(0, 0, 0);
+  envKey = rk;
+  const next = rk ? roomEnv[rk] : envMix.outCube;
+  if (!envMix.rt || !next) {                        // before the captures exist: plain switch
+    if (rk && roomEnv[rk]) { scene.environment = roomEnv[rk]; scene.environmentRotation.y = 0; boxOf(rk, envMix.b1); setBoxes(envMix.b1); } else openSky();
+    return;
   }
+  // fade from what the materials see right now (mid-fade: a snapshot of the current mix)
+  let from = envMix.to || envMix.outCube;
+  if (scene.environment === envMix.rt.texture && envMix.t < 1) {
+    const s = envMix.snaps[envMix.snap ^= 1];
+    mixInto(s, envMix.from, envMix.to, ease(envMix.t)); from = s.texture;
+  }
+  const cur = [BOX.boxMin.value, BOX.boxMax.value, BOX.boxProbe.value], open = BOX.boxMax.value.x > 1e3;
+  if (rk) { boxOf(rk, envMix.b1); envMix.b0.forEach((v, i) => v.copy(open ? envMix.b1[i] : cur[i])); }
+  else { envMix.b0.forEach((v, i) => v.copy(cur[i])); envMix.b1.forEach((v, i) => v.copy(cur[i])); }
+  envMix.from = from; envMix.to = next; envMix.t = 0;
+  mixInto(envMix.rt, from, next, 0);
+  scene.environment = envMix.rt.texture; scene.environmentRotation.y = 0;
+  setBoxes(envMix.b0);
+}
+function stepEnv(dt) {
+  if (!envMix.rt || envMix.t >= 1 || scene.environment !== envMix.rt.texture) return;
+  envMix.t = Math.min(1, envMix.t + (dt > 0 ? dt / ENV_FADE : 1));
+  const k = ease(envMix.t);
+  mixInto(envMix.rt, envMix.from, envMix.to, k);
+  BOX.boxMin.value.lerpVectors(envMix.b0[0], envMix.b1[0], k);
+  BOX.boxMax.value.lerpVectors(envMix.b0[1], envMix.b1[1], k);
+  BOX.boxProbe.value.lerpVectors(envMix.b0[2], envMix.b1[2], k);
+  if (envMix.t >= 1 && !envKey) { envMix.to = null; openSky(); }   // fully outside: the full-resolution sky again
 }
 function roomAt(p) { // p in three coordinates
   const x = p.x, y = -p.z;
@@ -1101,7 +1167,7 @@ const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v));
 const smooth = (t) => t * t * (3 - 2 * t);
 const smoothstep = (a, b, v) => smooth(clamp((v - a) / (b - a)));
 function scrollToS() {
-  const r = scrollY / (SECT * innerHeight), i = Math.floor(r), u = r - i;
+  const r = scrollY / (SECT * Math.max(innerHeight, 1)), i = Math.floor(r), u = r - i;   // a 0-high frame must not give NaN
   if (i >= SEC.length - 1) return SEC.length - 1;
   return i + smooth(clamp((u - .25) / .75));
 }
@@ -1165,9 +1231,9 @@ const BOXES = [ // furniture footprints [x0, y0, x1, y1]
   [0.11, 2.0, 0.85, 4.2], [0.11, 0.25, 0.68, 0.95], [1.3, 5.55, 3.25, 6.1], [3.3, 5.4, 3.8, 6.1], [0.5, 4.75, 1.0, 5.25], // garage
   [13.15, 18.65, 22.85, 23.35], [11.35, 14.4, 14.3, 16.4], [8.25, 16.45, 8.85, 17.05], [13.85, 16.55, 14.45, 17.15], // pool, lounge, planters
   [12.4, 17.6, 13.1, 18.4], [22.9, 17.6, 23.6, 18.4], [7.0, -1.85, 7.4, -1.25], [10.0, -1.85, 10.4, -1.25],         // Kuebel
-  [-14, -19.25, -0.6, -18.95], [4.8, -19.25, 7.4, -18.95], [10, -19.25, 26, -18.95],                                   // entry wall
-  [-13.5, -18.8, -1.0, -18.1], [5.2, -18.8, 7.25, -18.1], [10.15, -18.8, 25.5, -18.1], [6.0, 26.2, 29.0, 27.0],       // hedges
-  [-20, 3.2, -2.0, 3.85], [17.0, 3.2, 37.0, 3.85],
+  [-12, -19.25, -0.6, -18.95], [4.8, -19.25, 7.4, -18.95], [10, -19.25, 26, -18.95],                                   // entry wall
+  [-12, -18.8, -0.75, -18.1], [4.95, -18.8, 7.25, -18.1], [10.15, -18.8, 26, -18.1],                                 // hedge square: front
+  [-12, 28.3, 26, 29], [-12, -18.8, -11.3, 29], [25.3, -18.8, 26, 29],                                                  // back, left, right
 ];
 for (const [x0, y0, x1, y1] of BOXES) { seg(x0, y0, x1, y0); seg(x1, y0, x1, y1); seg(x1, y1, x0, y1); seg(x0, y1, x0, y0); }
 function floorAt(x, y) {
@@ -1510,6 +1576,7 @@ function update(dt) {
   }
   const rk = roomAt(P);
   if (rk !== envKey) applyRoom(rk);
+  stepEnv(dt);
   // one interior exposure for every room (rooms seen through openings match); indoors/outdoors blend with the
   // distance from the nearest opening instead of switching at the threshold
   const ev = exposureAt(P);
