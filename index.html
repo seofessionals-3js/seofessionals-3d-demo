@@ -205,7 +205,7 @@ body.walking .sprint-toggle { opacity: 1; visibility: visible; }
 .tier .size { font-size: 11px; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); }
 .tier.rec { border-color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink); }
 .tier.rec::after {
-  content: 'Empfohlen'; position: absolute; top: -9px; right: 10px; padding: 3px 7px 2px; background: var(--signal); color: #1C1E22;
+  content: attr(data-rec); position: absolute; top: -9px; right: 10px; padding: 3px 7px 2px; background: var(--signal); color: #1C1E22;
   font: 600 10px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase;
 }
 .tier .count { position: absolute; left: 0; bottom: 0; height: 2px; width: 0; background: var(--signal); }
@@ -218,6 +218,18 @@ body.walking .sprint-toggle { opacity: 1; visibility: visible; }
 
 /* small motion everywhere: buttons press, cards stagger their details, the lightbox fades in */
 button { -webkit-tap-highlight-color: transparent; }
+.en { display: none; }
+html[lang="en"] .en { display: inline; }
+html[lang="en"] .de { display: none; }
+.lang-toggle {
+  position: fixed; z-index: 30; left: max(16px, calc(env(safe-area-inset-left, 0px) + 16px)); bottom: calc(env(safe-area-inset-bottom, 0px) + 16px);
+  border: 0; padding: 8px 10px 7px; background: var(--chrome); color: var(--chrome-ink); cursor: pointer;
+  font: 600 12px/1 var(--mono); letter-spacing: .08em; backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  transition: transform .18s ease, background-color .25s;
+}
+.lang-toggle b { color: var(--signal); font-weight: 600; }
+.lang-toggle:active { transform: scale(.95); }
+@media (max-width: 760px) { .lang-toggle { left: auto; right: max(12px, calc(env(safe-area-inset-right, 0px) + 12px)); bottom: auto; top: calc(env(safe-area-inset-top, 0px) + 64px); } }
 .rooms button, .ghost, .shot, .walk-toggle, .sprint-toggle, .lightbox button { transition: color .2s, background-color .25s, border-color .2s, transform .18s ease, box-shadow .25s; }
 .rooms button:active, .ghost:active, .shot:active, .walk-toggle:active, .sprint-toggle:active, .cta:active { transform: scale(.96); }
 .shot:hover, .ghost:hover { transform: translateY(-1px); }
@@ -283,9 +295,9 @@ dialog.lightbox::backdrop { background: rgba(0, 0, 0, .85); }
     <div class="loader-note" id="load-note">Das Haus wird geladen · 0 %</div>
     <div class="loader-bar"><span id="load-bar"></span></div>
     <div class="tiers" role="group" aria-label="Darstellungsqualität wählen">
-      <button type="button" class="tier" data-tier="sd"><b>SD</b><span>Flüssig auf jedem Handy</span><i class="size">ca. 38 MB · leichte Texturen</i><span class="count"></span></button>
-      <button type="button" class="tier" data-tier="hd"><b>HD</b><span>Scharf auf Tablet und Laptop</span><i class="size">ca. 100 MB · 2K-Texturen, ca. 1 GB Grafikspeicher</i><span class="count"></span></button>
-      <button type="button" class="tier" data-tier="max"><b>Max</b><span>Volle Schärfe bis 4K</span><i class="size">ca. 100 MB · alles in voller Auflösung, starke Grafikkarte</i><span class="count"></span></button>
+      <button type="button" class="tier" data-tier="sd"><b>SD</b><span><span class="de">Flüssig auf jedem Handy</span><span class="en">Smooth on any phone</span></span><i class="size"><span class="de">ca. 38 MB · leichte Texturen</span><span class="en">about 38 MB · light textures</span></i><span class="count"></span></button>
+      <button type="button" class="tier" data-tier="hd"><b>HD</b><span><span class="de">Scharf auf Tablet und Laptop</span><span class="en">Sharp on tablet and laptop</span></span><i class="size"><span class="de">ca. 100 MB · 2K-Texturen, ca. 1 GB Grafikspeicher</span><span class="en">about 100 MB · 2K textures, about 1 GB video memory</span></i><span class="count"></span></button>
+      <button type="button" class="tier" data-tier="max"><b>Max</b><span><span class="de">Volle Schärfe bis 4K</span><span class="en">Full sharpness up to 4K</span></span><i class="size"><span class="de">ca. 100 MB · alles in voller Auflösung, starke Grafikkarte</span><span class="en">about 100 MB · everything at full resolution, strong graphics card</span></i><span class="count"></span></button>
     </div>
     <p class="tiers-note" id="tiers-note">Tippen Sie auf eine Stufe. Die empfohlene startet von selbst.</p>
   </div>
@@ -294,137 +306,151 @@ dialog.lightbox::backdrop { background: rgba(0, 0, 0, .85); }
 <canvas id="scene" aria-label="Begehbares 3D-Modell des Linden-Hauses, innen und außen"></canvas>
 <div class="vignette" aria-hidden="true"></div>
 
-<div class="studio"><span class="studio-name">Seofessionals 3D Demo</span><span class="studio-sub">Begehbare Architektur im Browser</span></div>
+<div class="studio"><span class="studio-name">Seofessionals 3D Demo</span><span class="studio-sub"><span class="de">Begehbare Architektur im Browser</span><span class="en">Walkable architecture in the browser</span></span></div>
+<button type="button" class="lang-toggle" id="lang" aria-label="Sprache wechseln / switch language"><span class="de"><b>DE</b> · EN</span><span class="en">DE · <b>EN</b></span></button>
 
-<nav class="rooms" aria-label="Räume">
-  <button type="button" data-go="0"><span class="num">00</span>Das Haus</button>
-  <button type="button" data-go="1"><span class="num">01</span>Diele</button>
-  <button type="button" data-go="2"><span class="num">02</span>Wohnzimmer</button>
-  <button type="button" data-go="3"><span class="num">03</span>Küche</button>
-  <button type="button" data-go="4"><span class="num">04</span>Bibliothek</button>
-  <button type="button" data-go="5"><span class="num">05</span>Bad</button>
-  <button type="button" data-go="6"><span class="num">06</span>Schlafzimmer</button>
-  <button type="button" data-go="7"><span class="num">07</span>Garten</button>
-  <button type="button" data-go="8"><span class="num">→</span>Ihr Projekt</button>
+<nav class="rooms" aria-label="Räume / rooms">
+  <button type="button" data-go="0"><span class="num">00</span><span class="de">Das Haus</span><span class="en">The house</span></button>
+  <button type="button" data-go="1"><span class="num">01</span><span class="de">Diele</span><span class="en">Hall</span></button>
+  <button type="button" data-go="2"><span class="num">02</span><span class="de">Wohnzimmer</span><span class="en">Living room</span></button>
+  <button type="button" data-go="3"><span class="num">03</span><span class="de">Küche</span><span class="en">Kitchen</span></button>
+  <button type="button" data-go="4"><span class="num">04</span><span class="de">Bibliothek</span><span class="en">Library</span></button>
+  <button type="button" data-go="5"><span class="num">05</span><span class="de">Garage</span><span class="en">Garage</span></button>
+  <button type="button" data-go="6"><span class="num">06</span><span class="de">Bad</span><span class="en">Bathroom</span></button>
+  <button type="button" data-go="7"><span class="num">07</span><span class="de">Schlafzimmer</span><span class="en">Bedroom</span></button>
+  <button type="button" data-go="8"><span class="num">08</span><span class="de">Garten</span><span class="en">Garden</span></button>
+  <button type="button" data-go="9"><span class="num">→</span><span class="de">Ihr Projekt</span><span class="en">Your project</span></button>
 </nav>
 
 <section class="card" data-i="0" data-view="exterior" aria-labelledby="t-hero">
-  <p class="eyebrow">Modernes Landhaus · 6 Räume · 112 m² · Pool</p>
-  <h1 id="t-hero">Das Linden-Haus</h1>
-  <p class="lede">Anthrazit-Fassade, Stehfalzdach und Zedernholz vor einem Alpenpanorama, in Blender gerendert und für den Browser gebacken. Scrollen Sie durch alle Räume oder erkunden Sie das Haus frei, die Haustür öffnet sich, wenn Sie näherkommen.</p>
+  <p class="eyebrow"><span class="de">Modernes Landhaus · 7 Räume · 112 m² · Pool</span><span class="en">Modern country house · 7 rooms · 112 m² · pool</span></p>
+  <h1 id="t-hero"><span class="de">Das Linden-Haus</span><span class="en">The Linden House</span></h1>
+  <p class="lede"><span class="de">Anthrazit-Fassade, Stehfalzdach und Zedernholz vor einem Alpenpanorama, in Blender gerendert und für den Browser gebacken. Scrollen Sie durch alle Räume oder erkunden Sie das Haus frei, die Haustür öffnet sich, wenn Sie näherkommen.</span><span class="en">A charcoal facade, standing-seam roof and cedar against an alpine panorama, rendered in Blender and baked for the browser. Scroll through every room or explore freely: the front door opens as you approach.</span></p>
   <div class="actions">
-    <button type="button" class="cta" data-go="1">Eintreten</button>
-    <p class="scroll-hint"><i></i>oder scrollen</p>
+    <button type="button" class="cta" data-go="1"><span class="de">Eintreten</span><span class="en">Step inside</span></button>
+    <p class="scroll-hint"><i></i><span class="de">oder scrollen</span><span class="en">or scroll</span></p>
   </div>
 </section>
 
 <section class="card" data-i="1" data-view="hall" aria-labelledby="t-hall">
-  <p class="eyebrow">Raum 01 von 06 · 10,4 m²</p>
-  <h2 id="t-hall">Diele</h2>
-  <p class="lede">Hinter der Eichen-Haustür eine helle Galerie-Diele: Einbauleuchten über vier gerahmten Drucken, eine Eichenbank am Eingang und ein heller Wollläufer ins offene Wohnzimmer.</p>
+  <p class="eyebrow"><span class="de">Raum 01 von 07 · 10,4 m²</span><span class="en">Room 01 of 07 · 10.4 m²</span></p>
+  <h2 id="t-hall"><span class="de">Diele</span><span class="en">Hall</span></h2>
+  <p class="lede"><span class="de">Hinter der Eichen-Haustür eine helle Galerie-Diele: Einbauleuchten über vier gerahmten Drucken, eine Eichenbank mit Schal und Schuhen am Eingang und ein heller Wollläufer ins offene Wohnzimmer.</span><span class="en">Behind the oak front door, a bright gallery hall: recessed lights over four framed prints, an oak bench with a scarf and shoes by the entrance, and a light wool runner leading into the open living room.</span></p>
   <dl class="specs">
-    <div><dt>Länge</dt><dd>7,4 m</dd></div>
-    <div><dt>Haustür</dt><dd>Eiche, raumhoher Griff</dd></div>
-    <div><dt>Licht</dt><dd>5 Einbaustrahler</dd></div>
-    <div><dt>Kunst</dt><dd>af Klint, Klee</dd></div>
+    <div><dt><span class="de">Länge</span><span class="en">Length</span></dt><dd><span class="de">7,4 m</span><span class="en">7.4 m</span></dd></div>
+    <div><dt><span class="de">Haustür</span><span class="en">Front door</span></dt><dd><span class="de">Eiche, raumhoher Griff</span><span class="en">Oak, full-height pull</span></dd></div>
+    <div><dt><span class="de">Licht</span><span class="en">Lighting</span></dt><dd><span class="de">5 Einbaustrahler</span><span class="en">5 recessed spots</span></dd></div>
+    <div><dt><span class="de">Kunst</span><span class="en">Art</span></dt><dd><span class="de">af Klint, Klee</span><span class="en">af Klint, Klee</span></dd></div>
   </dl>
 </section>
 
 <section class="card" data-i="2" data-view="living" aria-labelledby="t-living">
-  <p class="eyebrow">Raum 02 von 06 · 26,7 m²</p>
-  <h2 id="t-living">Wohnzimmer</h2>
-  <p class="lede">Offener Wohnraum um einen langen, niedrigen Kamin in raumhohem Travertin. Leinensofa, zwei Loungesessel und ein Travertin-Tisch bilden die Sitzgruppe, dahinter geht der Raum ohne Wand in Essbereich und Küche über.</p>
+  <p class="eyebrow"><span class="de">Raum 02 von 07 · 26,7 m²</span><span class="en">Room 02 of 07 · 26.7 m²</span></p>
+  <h2 id="t-living"><span class="de">Wohnzimmer</span><span class="en">Living room</span></h2>
+  <p class="lede"><span class="de">Offener Wohnraum um einen langen, niedrigen Kamin in raumhohem Travertin. Leinensofa, zwei Loungesessel und ein Travertin-Tisch bilden die Sitzgruppe, dahinter der gedeckte Esstisch und die Küche.</span><span class="en">An open living room around a long, low fireplace in floor-to-ceiling travertine. A linen sofa, two lounge chairs and a travertine table form the seating group, with the laid dining table and the kitchen beyond.</span></p>
   <dl class="specs">
-    <div><dt>Decke</dt><dd>2,90 m, Einbaustrahler</dd></div>
-    <div><dt>Kamin</dt><dd>Travertin, 1,6 m Feuerband</dd></div>
-    <div><dt>Sitzplätze</dt><dd>Leinensofa, 2 Loungesessel</dd></div>
-    <div><dt>Boden</dt><dd>Weißeiche-Dielen</dd></div>
+    <div><dt><span class="de">Decke</span><span class="en">Ceiling</span></dt><dd><span class="de">2,90 m, Einbaustrahler</span><span class="en">2.90 m, recessed spots</span></dd></div>
+    <div><dt><span class="de">Kamin</span><span class="en">Fireplace</span></dt><dd><span class="de">Travertin, 1,6 m Feuerband</span><span class="en">Travertine, 1.6 m flame</span></dd></div>
+    <div><dt><span class="de">Sitzplätze</span><span class="en">Seating</span></dt><dd><span class="de">Leinensofa, 2 Loungesessel</span><span class="en">Linen sofa, 2 lounge chairs</span></dd></div>
+    <div><dt><span class="de">Boden</span><span class="en">Floor</span></dt><dd><span class="de">Weißeiche-Dielen</span><span class="en">White oak boards</span></dd></div>
   </dl>
 </section>
 
 <section class="card" data-i="3" data-view="kitchen" aria-labelledby="t-kitchen">
-  <p class="eyebrow">Raum 03 von 06 · 25,8 m²</p>
-  <h2 id="t-kitchen">Küche &amp; Essen</h2>
-  <p class="lede">Grifflose Eichenfronten unter einer Marmor-Rückwand, eine anthrazitfarbene Insel mit Marmor-Wangen und ein Eichentisch für sechs, frei im Raum zwischen Sofa und Insel.</p>
+  <p class="eyebrow"><span class="de">Raum 03 von 07 · 25,8 m²</span><span class="en">Room 03 of 07 · 25.8 m²</span></p>
+  <h2 id="t-kitchen"><span class="de">Küche &amp; Essen</span><span class="en">Kitchen &amp; dining</span></h2>
+  <p class="lede"><span class="de">Eine raumhohe Schrankwand aus grifflosem Eichenfurnier mit Edelstahl-Kühlschrank und zwei Backöfen, davor eine Insel aus Calacatta-Marmor mit Spüle unter drei schwarzen Linienleuchten.</span><span class="en">A floor-to-ceiling wall of handleless oak with a stainless fridge and two ovens, facing a Calacatta marble island with the sink under three black linear pendants.</span></p>
   <dl class="specs">
-    <div><dt>Fronten</dt><dd>Eiche, grifflos</dd></div>
-    <div><dt>Arbeitsplatten</dt><dd>Marmor, geschliffen, 40 mm</dd></div>
-    <div><dt>Insel</dt><dd>Anthrazit, Marmor-Wangen</dd></div>
-    <div><dt>Tisch</dt><dd>Eiche, 6 Plätze</dd></div>
+    <div><dt><span class="de">Fronten</span><span class="en">Fronts</span></dt><dd><span class="de">Eiche, grifflos</span><span class="en">Oak, handleless</span></dd></div>
+    <div><dt><span class="de">Insel</span><span class="en">Island</span></dt><dd><span class="de">Calacatta, Wasserfallkante</span><span class="en">Calacatta, waterfall edges</span></dd></div>
+    <div><dt><span class="de">Geräte</span><span class="en">Appliances</span></dt><dd><span class="de">2 Backöfen, Induktion</span><span class="en">2 ovens, induction</span></dd></div>
+    <div><dt><span class="de">Tisch</span><span class="en">Table</span></dt><dd><span class="de">Eiche, 6 Plätze</span><span class="en">Oak, seats 6</span></dd></div>
   </dl>
 </section>
 
 <section class="card" data-i="4" data-view="study" aria-labelledby="t-study">
-  <p class="eyebrow">Raum 04 von 06 · 15,2 m²</p>
-  <h2 id="t-study">Bibliothek</h2>
-  <p class="lede">Raumhohe Einbauregale in Nussbaum, eine Fensterbank mit Schubladen unter dem Vorderfenster, ein Nussbaum-Schreibtisch und eine Bibliotheksleiter.</p>
+  <p class="eyebrow"><span class="de">Raum 04 von 07 · 15,2 m²</span><span class="en">Room 04 of 07 · 15.2 m²</span></p>
+  <h2 id="t-study"><span class="de">Bibliothek</span><span class="en">Library</span></h2>
+  <p class="lede"><span class="de">Raumhohe Regale in Nussbaum voller Bücher, ein Chesterfield-Sessel aus Leder mit Teetisch, eine Fensterbank zum Lesen und ein Nussbaum-Schreibtisch mit Messinglampe. Eine Tür führt in die Werkstatt.</span><span class="en">Floor-to-ceiling walnut shelves full of books, a leather chesterfield with a tea table, a reading window seat and a walnut desk with a brass lamp. A door leads into the workshop.</span></p>
   <dl class="specs">
-    <div><dt>Regale</dt><dd>18 m Bücher</dd></div>
-    <div><dt>Fensterbank</dt><dd>1,76 m, Leinenpolster</dd></div>
-    <div><dt>Schreibtisch</dt><dd>Nussbaum, 1,5 m</dd></div>
-    <div><dt>Leiter</dt><dd>Eiche an Messingstange</dd></div>
+    <div><dt><span class="de">Regale</span><span class="en">Shelves</span></dt><dd><span class="de">18 m Bücher</span><span class="en">18 m of books</span></dd></div>
+    <div><dt><span class="de">Sessel</span><span class="en">Armchair</span></dt><dd><span class="de">Chesterfield, Leder</span><span class="en">Chesterfield, leather</span></dd></div>
+    <div><dt><span class="de">Schreibtisch</span><span class="en">Desk</span></dt><dd><span class="de">Nussbaum, 1,5 m</span><span class="en">Walnut, 1.5 m</span></dd></div>
+    <div><dt><span class="de">Boden</span><span class="en">Floor</span></dt><dd><span class="de">Eiche, dunkel geölt</span><span class="en">Dark oiled oak</span></dd></div>
   </dl>
 </section>
 
-<section class="card" data-i="5" data-view="bath" aria-labelledby="t-bath">
-  <p class="eyebrow">Raum 05 von 06 · 12,9 m²</p>
-  <h2 id="t-bath">Bad</h2>
-  <p class="lede">Eine freistehende Wanne unter einem hohen Fenster, ein schwebender Eichen-Waschtisch mit Terrazzoplatte und zwei Aufsatzbecken, dazu eine begehbare Dusche hinter Stahlrahmen-Glas.</p>
+<section class="card" data-i="5" data-view="garage" aria-labelledby="t-garage">
+  <p class="eyebrow"><span class="de">Raum 05 von 07 · 24 m²</span><span class="en">Room 05 of 07 · 24 m²</span></p>
+  <h2 id="t-garage"><span class="de">Werkstatt-Garage</span><span class="en">Workshop garage</span></h2>
+  <p class="lede"><span class="de">Eine aufgeräumte Werkstatt hinter der Bibliothek: eine Lochwand voller Werkzeug, eine Werkbank aus Eiche, Regale mit Kisten und LED-Lichtbänder über dem versiegelten Betonboden.</span><span class="en">A tidy workshop behind the library: a pegboard full of tools, an oak workbench, shelving with crates and LED light strips over a sealed concrete floor.</span></p>
   <dl class="specs">
-    <div><dt>Wände</dt><dd>Glasurfliese bis 1,25 m</dd></div>
-    <div><dt>Boden</dt><dd>Natursteinfliese</dd></div>
-    <div><dt>Waschtisch</dt><dd>Eiche, Terrazzo</dd></div>
-    <div><dt>Armaturen</dt><dd>Messing, Schwarz</dd></div>
+    <div><dt><span class="de">Werkbank</span><span class="en">Workbench</span></dt><dd><span class="de">Eiche, 2,2 m</span><span class="en">Oak, 2.2 m</span></dd></div>
+    <div><dt><span class="de">Wand</span><span class="en">Wall</span></dt><dd><span class="de">Lochwand, 3,8 m</span><span class="en">Pegboard, 3.8 m</span></dd></div>
+    <div><dt><span class="de">Boden</span><span class="en">Floor</span></dt><dd><span class="de">Beton, versiegelt</span><span class="en">Sealed concrete</span></dd></div>
+    <div><dt><span class="de">Licht</span><span class="en">Lighting</span></dt><dd><span class="de">3 LED-Lichtbänder</span><span class="en">3 LED strips</span></dd></div>
   </dl>
 </section>
 
-<section class="card" data-i="6" data-view="bed" aria-labelledby="t-bed">
-  <p class="eyebrow">Raum 06 von 06 · 20,8 m²</p>
-  <h2 id="t-bed">Schlafzimmer</h2>
-  <p class="lede">Eine Wand in Lehm-Kalkputz hinter dem Polsterbett, ein Fenster zum Garten am Fußende und eine Schrankwand aus Eiche, die den ganzen Stauraum aufnimmt.</p>
+<section class="card" data-i="6" data-view="bath" aria-labelledby="t-bath">
+  <p class="eyebrow"><span class="de">Raum 06 von 07 · 12,9 m²</span><span class="en">Room 06 of 07 · 12.9 m²</span></p>
+  <h2 id="t-bath"><span class="de">Bad</span><span class="en">Bathroom</span></h2>
+  <p class="lede"><span class="de">Wände aus raumhohem Marmor, eine freistehende Wanne vor einem großen Fenster, eine bodengleiche Dusche hinter rahmenlosem Glas und ein schwebender Eichen-Waschtisch mit hinterleuchtetem Spiegel.</span><span class="en">Floor-to-ceiling marble walls, a freestanding tub at a big window, a walk-in shower behind frameless glass and a floating oak double vanity with a backlit mirror.</span></p>
   <dl class="specs">
-    <div><dt>Bett</dt><dd>180 × 200 cm</dd></div>
-    <div><dt>Akzentwand</dt><dd>Lehm-Kalkputz</dd></div>
-    <div><dt>Schrank</dt><dd>2,9 m, Eiche</dd></div>
-    <div><dt>Bettwäsche</dt><dd>Leinen, Wolldecke</dd></div>
+    <div><dt><span class="de">Wände</span><span class="en">Walls</span></dt><dd><span class="de">Marmor, raumhoch</span><span class="en">Marble, full height</span></dd></div>
+    <div><dt><span class="de">Boden</span><span class="en">Floor</span></dt><dd><span class="de">Großformat-Feinsteinzeug</span><span class="en">Large-format porcelain</span></dd></div>
+    <div><dt><span class="de">Waschtisch</span><span class="en">Vanity</span></dt><dd><span class="de">Eiche, Marmor</span><span class="en">Oak, marble</span></dd></div>
+    <div><dt><span class="de">Armaturen</span><span class="en">Fittings</span></dt><dd><span class="de">Schwarz matt</span><span class="en">Matt black</span></dd></div>
   </dl>
 </section>
 
-<section class="card" data-i="7" data-view="rear" aria-labelledby="t-garden">
-  <p class="eyebrow">Außen · Terrasse · Pool 9 × 4 m</p>
-  <h2 id="t-garden">Garten</h2>
-  <p class="lede">Die Terrassentür öffnet sich auf eine Steinterrasse mit Feuertisch zwischen zwei Zedernholz-Sofas. Dahinter ein Sonnendeck mit Liegen am Pool, eine hohe Hecke und die Berge am Horizont.</p>
+<section class="card" data-i="7" data-view="bed" aria-labelledby="t-bed">
+  <p class="eyebrow"><span class="de">Raum 07 von 07 · 20,8 m²</span><span class="en">Room 07 of 07 · 20.8 m²</span></p>
+  <h2 id="t-bed"><span class="de">Schlafzimmer</span><span class="en">Bedroom</span></h2>
+  <p class="lede"><span class="de">Ein Nussbaumbett mit hohem Kopfteil vor einer Wand in warmem Kalkputz, weiche Leinenbettwäsche mit salbeigrünen Kissen, eine Samtbank am Fußende und ein Lesesessel am Gartenfenster.</span><span class="en">A walnut bed with a tall headboard against a warm limewash wall, soft linen bedding with sage cushions, a velvet bench at the foot and a reading chair by the garden window.</span></p>
+  <dl class="specs">
+    <div><dt><span class="de">Bett</span><span class="en">Bed</span></dt><dd><span class="de">180 × 200 cm</span><span class="en">180 × 200 cm</span></dd></div>
+    <div><dt><span class="de">Akzentwand</span><span class="en">Feature wall</span></dt><dd><span class="de">Kalkputz</span><span class="en">Limewash</span></dd></div>
+    <div><dt><span class="de">Schrank</span><span class="en">Wardrobe</span></dt><dd><span class="de">2,9 m, Eiche</span><span class="en">2.9 m, oak</span></dd></div>
+    <div><dt><span class="de">Bettwäsche</span><span class="en">Bedding</span></dt><dd><span class="de">Leinen, Strick</span><span class="en">Linen, knit</span></dd></div>
+  </dl>
 </section>
 
-<section class="card" data-i="8" data-view="rear" aria-labelledby="t-outro">
-  <p class="eyebrow">Ihr Projekt</p>
-  <h2 id="t-outro">Begehen Sie Ihr Haus, bevor es gebaut ist</h2>
-  <p class="lede">Diese Demo von Seofessionals zeigt, was mit Ihrem Projekt möglich ist: in 4K gerendert für Druck und Exposé, und gebacken als 3D-Welt, die man im Browser begehen kann, am Handy wie am Rechner.</p>
+<section class="card" data-i="8" data-view="rear" aria-labelledby="t-garden">
+  <p class="eyebrow"><span class="de">Außen · Terrasse · Pool 9 × 4 m</span><span class="en">Outside · terrace · pool 9 × 4 m</span></p>
+  <h2 id="t-garden"><span class="de">Garten</span><span class="en">Garden</span></h2>
+  <p class="lede"><span class="de">Die Terrassentür öffnet sich auf eine Steinterrasse mit Feuertisch zwischen zwei Zedernholz-Sofas. Dahinter ein Sonnendeck mit Liegen am Pool, eine hohe Hecke und die Berge am Horizont.</span><span class="en">The garden door opens onto a stone terrace with a fire table between two cedar sofas. Beyond it a sun deck with loungers by the pool, a tall hedge and the mountains on the horizon.</span></p>
+</section>
+
+<section class="card" data-i="9" data-view="rear" aria-labelledby="t-outro">
+  <p class="eyebrow"><span class="de">Ihr Projekt</span><span class="en">Your project</span></p>
+  <h2 id="t-outro"><span class="de">Begehen Sie Ihr Haus, bevor es gebaut ist</span><span class="en">Walk through your house before it is built</span></h2>
+  <p class="lede"><span class="de">Diese Demo von Seofessionals zeigt, was mit Ihrem Projekt möglich ist: in 4K gerendert für Druck und Exposé, und gebacken als 3D-Welt, die man im Browser begehen kann, am Handy wie am Rechner.</span><span class="en">This Seofessionals demo shows what is possible for your project: rendered in 4K for print and brochures, and baked into a 3D world you can walk through in the browser, on phone or desktop.</span></p>
   <div class="actions">
-    <button type="button" class="cta" id="book">Projekt anfragen</button>
-    <button type="button" class="ghost" data-go="0">Noch einmal durchgehen</button>
-    <button type="button" class="tier-switch" id="tier-switch">Qualität ändern</button>
+    <button type="button" class="cta" id="book"><span class="de">Projekt anfragen</span><span class="en">Request a project</span></button>
+    <button type="button" class="ghost" data-go="0"><span class="de">Noch einmal durchgehen</span><span class="en">Take the tour again</span></button>
+    <button type="button" class="tier-switch" id="tier-switch"><span class="de">Qualität ändern</span><span class="en">Change quality</span></button>
   </div>
-  <p class="contact" id="contact" hidden>Sprechen Sie Seofessionals an. Wir bauen Ihr Haus, Ihre Wohnung oder Ihr Ladenlokal als begehbare 3D-Welt für Ihre Website.</p>
-  <p class="credits">Gerendert mit Blender Cycles, Lightmaps in 2K gebacken · Materialien: ambientCG (CC0) · Möbel, Pflanzen und Himmel: Poly Haven (CC0) · Kunst: Hilma af Klint, Paul Klee (gemeinfrei)</p>
+  <p class="contact" id="contact" hidden><span class="de">Sprechen Sie Seofessionals an. Wir bauen Ihr Haus, Ihre Wohnung oder Ihr Ladenlokal als begehbare 3D-Welt für Ihre Website.</span><span class="en">Talk to Seofessionals. We build your house, apartment or shop as a walkable 3D world for your website.</span></p>
+  <p class="credits"><span class="de">Gerendert mit Blender Cycles, Lightmaps in 2K gebacken · Materialien: ambientCG (CC0) · Möbel und Himmel: Poly Haven (CC0) · Kunst: Hilma af Klint, Paul Klee (gemeinfrei)</span><span class="en">Rendered with Blender Cycles, lightmaps baked at 2K · Materials: ambientCG (CC0) · Furniture and sky: Poly Haven (CC0) · Art: Hilma af Klint, Paul Klee (public domain)</span></p>
 </section>
 
 <figure class="plan" aria-label="Grundriss">
   <svg viewBox="-46 -26 148 144" role="group" aria-label="Grundriss, Raum auswählen">
-    <rect class="gar" x="-42" y="-22" width="42" height="62"></rect>
-    <text x="-38" y="-14">Garage</text>
+    <rect class="rm" data-go="5" data-room="5" x="-42" y="-22" width="42" height="62" tabindex="0" role="button" aria-label="Garage"></rect>
+    <text data-room="5" x="-38" y="-14">Garage</text>
     <rect class="rm" data-go="4" data-room="4" x="0" y="0" width="38" height="40" tabindex="0" role="button" aria-label="Bibliothek"></rect>
     <rect class="rm" data-go="1" data-room="1" x="38" y="0" width="14" height="74" tabindex="0" role="button" aria-label="Diele"></rect>
     <rect class="rm" data-go="2" data-room="2" x="52" y="0" width="46" height="58" tabindex="0" role="button" aria-label="Wohnzimmer"></rect>
-    <rect class="rm" data-go="5" data-room="5" x="0" y="40" width="38" height="34" tabindex="0" role="button" aria-label="Bad"></rect>
+    <rect class="rm" data-go="6" data-room="6" x="0" y="40" width="38" height="34" tabindex="0" role="button" aria-label="Bad"></rect>
     <rect class="rm" data-go="3" data-room="3" x="52" y="58" width="46" height="56" tabindex="0" role="button" aria-label="Küche"></rect>
-    <rect class="rm" data-go="6" data-room="6" x="0" y="74" width="52" height="40" tabindex="0" role="button" aria-label="Schlafzimmer"></rect>
+    <rect class="rm" data-go="7" data-room="7" x="0" y="74" width="52" height="40" tabindex="0" role="button" aria-label="Schlafzimmer"></rect>
     <text data-room="4" x="3" y="8">Bibliothek</text>
     <text data-room="1" x="40" y="8">Diele</text>
     <text data-room="2" x="55" y="8">Wohnen</text>
-    <text data-room="5" x="3" y="48">Bad</text>
+    <text data-room="6" x="3" y="48">Bad</text>
     <text data-room="3" x="55" y="66">Küche</text>
-    <text data-room="6" x="3" y="82">Schlafen</text>
+    <text data-room="7" x="3" y="82">Schlafen</text>
     <g class="cam" id="cam"><path d="M0 0 L16 -8 A18 18 0 0 1 16 8 Z"></path><circle r="2.6"></circle></g>
   </svg>
   <figcaption><span>Grundriss · 1:100</span><span>112 m²</span></figcaption>
@@ -435,13 +461,13 @@ dialog.lightbox::backdrop { background: rgba(0, 0, 0, .85); }
   <div class="status-bar"><span id="status-fill"></span></div>
   <button type="button" class="walk-toggle" id="walk" aria-pressed="false">Frei erkunden</button>
 </div>
-<p class="walk-hint" id="walk-hint"><b>Ziehen</b> zum Umsehen · <b>W A S D</b> oder Pfeiltasten zum Gehen · <b>Shift</b> zum Sprinten · <b>E</b> oder Klick öffnet die Haustür · am Handy <b>gedrückt halten</b> zum Vorwärtsgehen</p>
+<p class="walk-hint" id="walk-hint"><span class="de"><b>Ziehen</b> zum Umsehen · <b>W A S D</b> oder Pfeiltasten zum Gehen · <b>Shift</b> zum Sprinten · <b>E</b> oder Klick öffnet die Haustür · am Handy <b>gedrückt halten</b> zum Vorwärtsgehen</span><span class="en"><b>Drag</b> to look around · <b>W A S D</b> or arrow keys to walk · <b>Shift</b> to sprint · <b>E</b> or click opens the front door · on phones <b>press and hold</b> to walk forward</span></p>
 <button type="button" class="sprint-toggle" id="sprint" aria-pressed="false">Sprinten</button>
 
 <dialog class="lightbox" id="lightbox" aria-label="4K-Rendering">
   <figure>
     <div class="frame"><img id="lb-img" alt=""></div>
-    <figcaption><span id="lb-cap"></span><span>Blender Cycles · 3840 × 2160</span><button type="button" id="lb-close">Schließen</button></figcaption>
+    <figcaption><span id="lb-cap"></span><span>Blender Cycles · 3840 × 2160</span><button type="button" id="lb-close"><span class="de">Schließen</span><span class="en">Close</span></button></figcaption>
   </figure>
 </dialog>
 
@@ -463,7 +489,17 @@ import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js'
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
 const PI = Math.PI;
-document.documentElement.lang = 'de';
+let LANG = 'de';
+try { LANG = localStorage.getItem('seo3d-lang') || ((navigator.language || 'de').toLowerCase().startsWith('de') ? 'de' : 'en'); } catch (e) { /* private mode */ }
+document.documentElement.lang = LANG;
+const L = (de, en) => (LANG === 'en' ? en : de);
+const langListeners = [];
+document.getElementById('lang').addEventListener('click', () => {
+  LANG = LANG === 'en' ? 'de' : 'en';
+  document.documentElement.lang = LANG;
+  try { localStorage.setItem('seo3d-lang', LANG); } catch (e) { /* ignore */ }
+  langListeners.forEach((f) => f());
+});
 const $ = (s) => document.querySelector(s);
 const $$ = (s) => [...document.querySelectorAll(s)];
 const loaderEl = $('#loader');
@@ -521,7 +557,12 @@ function chooseTier() {
     loaderEl.style.setProperty('--wait', wait + 's');
     const btns = $$('.tier');
     btns.forEach((b) => b.classList.toggle('rec', b.dataset.tier === pre));
-    $('#tiers-note').textContent = saved ? 'Ihre letzte Wahl startet gleich. Tippen Sie, um sie zu ändern.' : 'Tippen Sie auf eine Stufe. Die empfohlene startet von selbst.';
+    const tierNote = () => {
+      $('#tiers-note').textContent = saved ? L('Ihre letzte Wahl startet gleich. Tippen Sie, um sie zu ändern.', 'Your last choice starts in a moment. Tap to change it.')
+        : L('Tippen Sie auf eine Stufe. Die empfohlene startet von selbst.', 'Tap a level. The recommended one starts by itself.');
+      btns.forEach((b) => { b.dataset.rec = L('Empfohlen', 'Recommended'); });
+    };
+    tierNote(); langListeners.push(tierNote);
     let done = false;
     const go = (t) => {
       if (done) return; done = true; clearTimeout(timer);
@@ -538,12 +579,12 @@ function chooseTier() {
 }
 const TIER = await chooseTier();
 const SD = TIER === 'sd', MAX = TIER === 'max';
-note('Das Haus wird geladen · 0 %');
+note(L('Das Haus wird geladen · 0 %', 'Loading the house · 0 %'));
 
 let renderer;
 try {
   renderer = new T.WebGLRenderer({ canvas: $('#scene'), antialias: !SD, powerPreference: SD ? 'default' : 'high-performance', stencil: false });
-} catch (e) { fail('Für den Rundgang wird WebGL benötigt. Es ist in diesem Browser ausgeschaltet oder nicht verfügbar.'); throw e; }
+} catch (e) { fail(L('Für den Rundgang wird WebGL benötigt. Es ist in diesem Browser ausgeschaltet oder nicht verfügbar.', 'The tour needs WebGL, which is switched off or not available in this browser.')); throw e; }
 // Quality tier. Phones and low-memory machines get the same files, but textures are scaled down before they
 // reach the GPU (about a quarter of the video memory) and sharpness comes from pixel density instead of MSAA.
 const LITE = SD;
@@ -552,8 +593,8 @@ let dpr = Math.min(window.devicePixelRatio || 1, SD ? 1.25 : MAX ? 2.25 : 1.5);
 $('#scene').addEventListener('webglcontextlost', (e) => {
   e.preventDefault();
   loaderEl.classList.remove('done'); loaderEl.removeAttribute('aria-hidden');
-  fail('Der Grafikspeicher dieses Geräts ist voll. Bitte laden Sie die Seite in SD-Qualität.');
-  const b = document.createElement('button'); b.type = 'button'; b.className = 'cta'; b.textContent = 'In SD neu laden';
+  fail(L('Der Grafikspeicher dieses Geräts ist voll. Bitte laden Sie die Seite in SD-Qualität.', 'This device ran out of video memory. Please reload the page in SD quality.'));
+  const b = document.createElement('button'); b.type = 'button'; b.className = 'cta'; b.textContent = L('In SD neu laden', 'Reload in SD');
   b.addEventListener('click', () => { try { localStorage.setItem('seo3d-tier', 'sd'); } catch (er) { /* ignore */ } location.search = '?q=sd'; });
   $('.loader-inner').appendChild(b);
 }, false);
@@ -584,7 +625,7 @@ const renderFrame = () => {
 /* ================= Loading ================= */
 let man;
 const progress = { total: 1, done: 0 };
-const bump = (n = 1) => { progress.done += n; const f = Math.min(1, progress.done / progress.total); $('#load-bar').style.width = `${(f * 90).toFixed(1)}%`; note(`Das Haus wird geladen · ${Math.round(f * 100)} %`); };
+const bump = (n = 1) => { progress.done += n; const f = Math.min(1, progress.done / progress.total); $('#load-bar').style.width = `${(f * 90).toFixed(1)}%`; note(L(`Das Haus wird geladen · ${Math.round(f * 100)} %`, `Loading the house · ${Math.round(f * 100)} %`)); };
 const manager = new T.LoadingManager();
 // track what is still in flight so a stalled load can say which file it is waiting for
 const pending = new Map(), failures = [];
@@ -599,7 +640,7 @@ let stallTimer = setInterval(() => {
   if (loaderEl.classList.contains('done')) { clearInterval(stallTimer); return; }
   const now = performance.now(), slow = [...pending].filter(([, t]) => now - t > 15000).map(([u]) => short(u));
   if (slow.length || failures.length) {
-    note(`Das Haus wird geladen · ${Math.round(Math.min(1, progress.done / progress.total) * 100)} % · wartet auf ${slow.slice(0, 3).join(', ') || '—'}${failures.length ? ' · fehlgeschlagen: ' + failures.slice(-3).map(short).join(', ') : ''}`);
+    note(`${L('Das Haus wird geladen', 'Loading the house')} · ${Math.round(Math.min(1, progress.done / progress.total) * 100)} % · ${L('wartet auf', 'waiting for')} ${slow.slice(0, 3).join(', ') || '—'}${failures.length ? ' · fehlgeschlagen: ' + failures.slice(-3).map(short).join(', ') : ''}`);
   }
 }, 3000);
 if (SD) manager.setURLModifier((url) => url.replace(/(^|\/)tex\//, '$1tex_sd/'));
@@ -858,7 +899,11 @@ async function loadFile(key, file) {
     if (!o.isMesh) return;
     o.material = Array.isArray(o.material) ? o.material.map((m) => prepareMaterial(m, key)) : prepareMaterial(o.material, key);
     const mats = [].concat(o.material);
-    if (mats.includes(flameMat)) flames.push(o);
+    if (mats.includes(flameMat)) {
+      flames.push(o);
+      const uv = o.geometry.attributes.uv;
+      if (uv) { for (let i = 0; i < uv.count; i++) uv.setY(i, 1 - uv.getY(i)); uv.needsUpdate = true; }
+    }
     o.matrixAutoUpdate = false; o.updateMatrix();
   });
   g.scene.name = 'zone_' + file;
@@ -924,7 +969,7 @@ async function loadSky() {
 }
 const ROOMS = { // Blender plan coordinates [x0, y0, x1, y1]
   hall: [8.0, 2.2, 9.4, 9.6], study: [4.2, 2.2, 8.0, 6.2], living: [9.4, 2.2, 14.0, 8.0],
-  kitchen: [9.4, 8.0, 14.0, 13.6], bath: [4.2, 6.2, 8.0, 9.6], bed: [4.2, 9.6, 9.4, 13.6],
+  kitchen: [9.4, 8.0, 14.0, 13.6], bath: [4.2, 6.2, 8.0, 9.6], bed: [4.2, 9.6, 9.4, 13.6], garage: [0.0, 0.0, 4.2, 6.2],
 };
 // The sun disc in the HDR is thousands of times brighter than the sky. Blurred into a rough reflection it would
 // lay a grey veil over every glossy surface, so the room captures see the sky with the sun clamped.
@@ -998,6 +1043,11 @@ const CP = [
   [[8.7, 8.4, E], [8.7, 4.5, 1.8]],
   [[8.6, 5.05, E], [6.5, 4.5, 1.6]],
   [[7.65, 5.1, E], 'study'],                       // 17 LIBRARY
+  [[6.2, 5.2, E], [3.0, 5.2, 1.5]],                // toward the workshop door
+  [[4.4, 5.2, E], [1.5, 3.8, 1.3]],                // through it, down the step
+  [[3.55, 3.1, 1.62], 'garage'],                   // 20 GARAGE
+  [[3.6, 5.2, 1.75], [7, 5.2, 1.8]],               // back up into the library
+  [[6.0, 5.2, E], [8.6, 6.0, 1.8]],
   [[8.6, 5.3, E], [8.7, 8, 1.8]],
   [[8.6, 6.95, E], [6, 7.5, 1.6]],
   [[7.55, 7.0, E], [5, 8.5, 1.5]],
@@ -1016,7 +1066,7 @@ const CP = [
   [[18.5, 27.5, 1.75], 'rear'],                    // 33 GARDEN
   [[22, 32, 3.2], [9, 11, 2.4]],                   // 34 CONSULTATION
 ];
-const SEC = [0, 4, 9, 12, 17, 21, 25, 33, 34];
+const SEC = [0, 4, 9, 12, 17, 20, 26, 30, 38, 39];
 const SECT = 1.5;
 let posCurve, tgtCurve;
 function buildPath() {
@@ -1026,7 +1076,7 @@ function buildPath() {
     if (typeof t === 'string') { const c = man.cameras[t]; tgt.push(new T.Vector3(...c.target)); } else tgt.push(B(...t));
   }
   // the manifest cameras are the exact Blender views
-  for (const [k, i] of [['exterior', 0], ['hall', 4], ['living', 9], ['kitchen', 12], ['study', 17], ['bath', 21], ['bed', 25], ['rear', 33]]) {
+  for (const [k, i] of [['exterior', 0], ['hall', 4], ['living', 9], ['kitchen', 12], ['study', 17], ['garage', 20], ['bath', 26], ['bed', 30], ['rear', 38]]) {
     const c = man.cameras[k]; if (c) { pos[i].fromArray(c.pos); tgt[i].fromArray(c.target); }
   }
   posCurve = new T.CatmullRomCurve3(pos, false, 'centripetal');
@@ -1043,7 +1093,8 @@ function exposureAt(p) {
   // within 1.5 m of the front or garden door the eye is half adapted to either side
   const k = smoothstep(0, 1.5, d);
   const mid = (IN_EV + OUT_EV) / 2;
-  return inside ? mid + (IN_EV - mid) * k : mid + (OUT_EV - mid) * k;
+  const room = roomAt(p), off = room === 'garage' ? -0.9 : 0;   // the workshop is lit darker on purpose
+  return inside ? mid + (IN_EV + off - mid) * k : mid + (OUT_EV - mid) * k;
 }
 
 const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v));
@@ -1097,7 +1148,7 @@ function wallLine(x0, y0, x1, y1, holes = []) {
 wallLine(4.2, 2.2, 14, 2.2, [[8.2, 9.2]]);
 wallLine(14, 2.2, 14, 13.6);
 wallLine(4.2, 13.6, 14, 13.6, [[9.55, 10.75]]);
-wallLine(4.2, 2.2, 4.2, 13.6);
+wallLine(4.2, 2.2, 4.2, 13.6, [[4.75, 5.65]]);       // door from the library into the garage
 wallLine(8.0, 2.2, 8.0, 9.6, [[4.6, 5.5], [6.55, 7.35]]);
 wallLine(9.4, 2.2, 9.4, 9.6, [[6.2, 7.75], [8.45, 9.45]]);
 wallLine(4.2, 6.2, 8.0, 6.2);
@@ -1106,15 +1157,21 @@ wallLine(9.4, 9.6, 9.4, 13.6);
 wallLine(0, 0, 4.2, 0); wallLine(0, 0, 0, 6.2); wallLine(0, 6.2, 4.2, 6.2);
 const BOXES = [ // furniture footprints [x0, y0, x1, y1]
   [9.65, 3.7, 10.65, 6.5], [11.0, 4.55, 12.1, 5.65], [10.62, 2.7, 11.38, 3.42], [12.08, 2.82, 12.82, 3.58],   // sofa, table, chairs
-  [10.5, 7.5, 12.9, 9.12], [10.45, 10.42, 13.05, 11.48],                                                       // dining, island
-  [5.42, 9.7, 7.38, 11.86], [4.45, 7.45, 5.27, 9.15], [5.15, 3.92, 6.65, 4.68], [4.56, 6.26, 6.36, 6.78],
-  [8.72, 10.56, 9.34, 13.49], [13.25, 3.9, 14, 6.3], [13.47, 2.2, 14, 8.6], [11.0, 12.87, 14, 13.6], [13.25, 11.6, 14, 12.8],
-  [4.2, 2.2, 8.0, 2.86], [4.2, 5.78, 8.0, 6.2], [6.74, 8.5, 6.76, 9.6],
+  [10.5, 7.5, 12.9, 9.12], [11.09, 9.9, 12.15, 12.4], [13.24, 9.25, 14, 13.6], [12.25, 13.17, 13.55, 13.55], // dining, island, cabinet wall, bench
+  [13.25, 3.9, 14, 6.3], [13.47, 2.2, 14, 8.6],                                                             // fireplace, cabinets
+  [5.42, 9.7, 7.38, 11.86], [4.85, 9.66, 5.35, 10.1], [7.45, 9.66, 7.95, 10.1], [8.72, 10.56, 9.34, 13.49],  // bed, nightstands, wardrobe
+  [4.31, 6.4, 5.15, 8.1], [4.31, 8.39, 5.5, 8.41], [5.6, 9.0, 7.9, 9.54],                                   // tub, shower glass, vanity
+  [5.15, 3.92, 6.65, 4.68], [6.7, 2.75, 7.6, 3.65], [7.3, 3.7, 7.8, 4.2], [4.2, 2.2, 8.0, 2.86], [4.2, 5.78, 8.0, 6.2], // library
+  [0.11, 2.0, 0.85, 4.2], [0.11, 0.25, 0.68, 0.95], [1.3, 5.55, 3.25, 6.1], [3.3, 5.4, 3.8, 6.1], [0.5, 4.75, 1.0, 5.25], // garage
   [13.15, 18.65, 22.85, 23.35], [11.35, 14.4, 14.3, 16.4], [8.25, 16.45, 8.85, 17.05], [13.85, 16.55, 14.45, 17.15], // pool, lounge, planters
+  [12.4, 17.6, 13.1, 18.4], [22.9, 17.6, 23.6, 18.4], [7.0, -1.85, 7.4, -1.25], [10.0, -1.85, 10.4, -1.25],         // Kuebel
   [-14, -19.25, -0.6, -18.95], [4.8, -19.25, 7.4, -18.95], [10, -19.25, 26, -18.95],                                   // entry wall
+  [-13.5, -18.8, -1.0, -18.1], [5.2, -18.8, 7.25, -18.1], [10.15, -18.8, 25.5, -18.1], [6.0, 26.2, 29.0, 27.0],       // hedges
+  [-20, 3.2, -2.0, 3.85], [17.0, 3.2, 37.0, 3.85],
 ];
 for (const [x0, y0, x1, y1] of BOXES) { seg(x0, y0, x1, y0); seg(x1, y0, x1, y1); seg(x1, y1, x0, y1); seg(x0, y1, x0, y0); }
 function floorAt(x, y) {
+  if (x >= 0 && x < 4.2 && y >= 0 && y <= 6.2) return (y > 4.7 && y < 5.7) ? (x > 3.66 ? 0.45 : x > 3.3 ? 0.285 : 0.12) : 0.12;
   if (x >= 4.2 && x <= 14 && y >= 2.2 && y <= 13.6) return 0.45;
   if (x >= 4.2 && x <= 14 && y >= 0 && y < 2.2) return 0.48;
   if (x >= 7.5 && x <= 9.9 && y >= -1.25 && y < 0) return 0.45 * (y + 1.25) / 1.25;
@@ -1142,7 +1199,7 @@ function setWalk(on) {
   walk.on = on;
   document.body.classList.toggle('walking', on);
   $('#walk').setAttribute('aria-pressed', on ? 'true' : 'false');
-  $('#walk').textContent = on ? 'Zurück zum Rundgang' : 'Frei erkunden';
+  $('#walk').textContent = on ? L('Zurück zum Rundgang', 'Back to the tour') : L('Frei erkunden', 'Explore freely');
   if (on) {
     const d = new T.Vector3(); camera.getWorldDirection(d);
     walk.yaw = Math.atan2(d.x, -d.z); walk.pitch = Math.asin(clamp(d.y, -1, 1));
@@ -1337,12 +1394,14 @@ const navBtns = $$('.rooms button');
 const planRooms = $$('.plan .rm'), planTexts = $$('.plan text[data-room]');
 const camMark = $('#cam');
 const statusText = $('#status-text'), statusStep = $('#status-step'), statusFill = $('#status-fill');
-const NAMES = ['Das Haus', 'Diele', 'Wohnzimmer', 'Küche', 'Bibliothek', 'Bad', 'Schlafzimmer', 'Garten', 'Ihr Projekt'];
-const VIEW_LABEL = { exterior: 'Das Haus von der Straße', hall: 'Diele', living: 'Wohnzimmer', kitchen: 'Küche und Essbereich', study: 'Bibliothek', bath: 'Bad', bed: 'Schlafzimmer', rear: 'Garten und Terrasse' };
-const ROOM_STOP = { hall: 1, living: 2, kitchen: 3, study: 4, bath: 5, bed: 6 };
+const NAMES_DE = ['Das Haus', 'Diele', 'Wohnzimmer', 'Küche', 'Bibliothek', 'Garage', 'Bad', 'Schlafzimmer', 'Garten', 'Ihr Projekt'];
+const NAMES_EN = ['The house', 'Hall', 'Living room', 'Kitchen', 'Library', 'Garage', 'Bathroom', 'Bedroom', 'Garden', 'Your project'];
+const VIEW_DE = { exterior: 'Das Haus von der Straße', hall: 'Diele', living: 'Wohnzimmer', kitchen: 'Küche und Essbereich', study: 'Bibliothek', garage: 'Werkstatt-Garage', bath: 'Bad', bed: 'Schlafzimmer', rear: 'Garten und Terrasse' };
+const VIEW_EN = { exterior: 'The house from the street', hall: 'Hall', living: 'Living room', kitchen: 'Kitchen and dining', study: 'Library', garage: 'Workshop garage', bath: 'Bathroom', bed: 'Bedroom', rear: 'Garden and terrace' };
+const ROOM_STOP = { hall: 1, living: 2, kitchen: 3, study: 4, garage: 5, bath: 6, bed: 7 };
 function goTo(i) {
   if (walk.on) {
-    const k = ['exterior', 'hall', 'living', 'kitchen', 'study', 'bath', 'bed', 'rear', 'rear'][i];
+    const k = ['exterior', 'hall', 'living', 'kitchen', 'study', 'garage', 'bath', 'bed', 'rear', 'rear'][i];
     const c = man && man.cameras[k];
     if (c) {
       camera.position.fromArray(c.pos); camera.lookAt(new T.Vector3(...c.target));
@@ -1365,8 +1424,9 @@ const lb = $('#lightbox'), lbImg = $('#lb-img');
 function openRender(k) {
   const c = man.cameras[k];
   if (!c || !c.render) return;
-  lbImg.src = c.render; lbImg.alt = `4K-Rendering: ${VIEW_LABEL[k]}`;
-  $('#lb-cap').textContent = VIEW_LABEL[k];
+  const lab = L(VIEW_DE[k], VIEW_EN[k]);
+  lbImg.src = c.render; lbImg.alt = `${L('4K-Rendering', '4K render')}: ${lab}`;
+  $('#lb-cap').textContent = lab;
   lb.classList.remove('zoom');
   lb.showModal();
 }
@@ -1376,10 +1436,10 @@ lb.addEventListener('click', (e) => { if (e.target === lb) lb.close(); });
 function addRenderButtons() {
   for (const card of cards) {
     const k = card.dataset.view;
-    if (!k || card.dataset.i === '8' || !man.cameras[k] || !man.cameras[k].render) continue;
+    if (!k || card.dataset.i === '9' || !man.cameras[k] || !man.cameras[k].render) continue;
     const b = document.createElement('button');
     b.type = 'button'; b.className = 'shot';
-    b.innerHTML = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><rect x="1.5" y="3" width="13" height="10"/><path d="M1.5 11l4-4 3 3 2-2 4 4"/></svg>4K-Rendering ansehen';
+    b.innerHTML = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><rect x="1.5" y="3" width="13" height="10"/><path d="M1.5 11l4-4 3 3 2-2 4 4"/></svg><span class="de">4K-Rendering ansehen</span><span class="en">View 4K render</span>';
     b.addEventListener('click', () => openRender(k));
     card.appendChild(b);
   }
@@ -1394,8 +1454,8 @@ const tick = () => new Promise((r) => setTimeout(r, 30));
 async function boot() {
   try {
     man = await (await fetch('manifest.json')).json();
-  } catch (e) { fail('Das Haus konnte nicht geladen werden. Prüfen Sie die Verbindung und laden Sie die Seite neu.'); throw e; }
-  const order = ['EXT', 'GROUND', 'FAR', 'DOOR', 'hall', 'living', 'kitchen', 'study', 'bath', 'bed', 'VEG'].filter((k) => man.zones[k]);
+  } catch (e) { fail(L('Das Haus konnte nicht geladen werden. Prüfen Sie die Verbindung und laden Sie die Seite neu.', 'The house could not be loaded. Check your connection and reload the page.')); throw e; }
+  const order = ['EXT', 'GROUND', 'FAR', 'DOOR', 'hall', 'living', 'kitchen', 'study', 'garage', 'bath', 'bed', 'VEG'].filter((k) => man.zones[k]);
   progress.total = order.reduce((n, k) => n + man.zones[k].files.length * 2, 0) + 1;
   buildPath();
   fitCamera();
@@ -1406,7 +1466,7 @@ async function boot() {
   buildBillboards();
   setupDoor();
   setupGarden();
-  note('Die Räume werden beleuchtet'); $('#load-bar').style.width = '94%';
+  note(L('Die Räume werden beleuchtet', 'Lighting the rooms')); $('#load-bar').style.width = '94%';
   await tick();
   camera.position.set(9, 25, 40); camera.lookAt(9, 0, -8);
   precompile();
@@ -1480,8 +1540,8 @@ function update(dt) {
     navBtns.forEach((b, i) => b.setAttribute('aria-current', i === active ? 'true' : 'false'));
     planRooms.forEach((r) => r.classList.toggle('on', +r.dataset.room === active));
     planTexts.forEach((t) => t.classList.toggle('on', +t.dataset.room === active));
-    statusText.textContent = NAMES[active];
-    statusStep.textContent = walk.on ? 'Freier Modus' : active === 0 ? 'Zum Gehen scrollen' : active >= 7 ? 'Außen' : `Raum ${String(active).padStart(2, '0')} / 06`;
+    statusText.textContent = L(NAMES_DE, NAMES_EN)[active];
+    statusStep.textContent = walk.on ? L('Freier Modus', 'Free mode') : active === 0 ? L('Zum Gehen scrollen', 'Scroll to walk') : active >= 8 ? L('Außen', 'Outside') : `${L('Raum', 'Room')} ${String(active).padStart(2, '0')} / 07`;
   }
   statusFill.style.width = walk.on ? '100%' : `${(sCur / (SEC.length - 1) * 100).toFixed(1)}%`;
   camMark.style.display = rk ? '' : 'none';
@@ -1514,6 +1574,8 @@ function frame() {
   requestAnimationFrame(frame);
 }
 
-boot().catch((e) => { console.error(e); if (!loaderEl.classList.contains('failed')) fail('Der Rundgang konnte in diesem Browser nicht starten.'); });
+langListeners.push(() => { lastActive = -1; $('#walk').textContent = walk.on ? L('Zurück zum Rundgang', 'Back to the tour') : L('Frei erkunden', 'Explore freely'); $('#sprint').textContent = L('Sprinten', 'Sprint'); });
+$('#sprint').textContent = L('Sprinten', 'Sprint'); $('#walk').textContent = L('Frei erkunden', 'Explore freely');
+boot().catch((e) => { console.error(e); if (!loaderEl.classList.contains('failed')) fail(L('Der Rundgang konnte in diesem Browser nicht starten.', 'The tour could not start in this browser.')); });
 </script>
 </html>
