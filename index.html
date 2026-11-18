@@ -186,6 +186,54 @@ body.walking .sprint-toggle { opacity: 1; visibility: visible; }
 .loader-bar { width: 200px; height: 2px; background: var(--line); overflow: hidden; }
 .loader-bar span { display: block; height: 100%; width: 0; background: var(--ink); transition: width .3s; }
 #loader.failed .loader-bar { display: none; }
+.loader-brand { animation: rise .9s cubic-bezier(.2, .7, .2, 1) both; }
+.loader-bar span { box-shadow: 0 0 12px rgba(255, 228, 51, .0); background: linear-gradient(90deg, var(--ink), var(--ink) 70%, var(--signal)); }
+#loader.picking .loader-note, #loader.picking .loader-bar { display: none; }
+.tiers { display: none; gap: 10px; grid-template-columns: repeat(3, minmax(0, 1fr)); width: min(640px, calc(100vw - 32px)); margin-top: 8px; }
+#loader.picking .tiers { display: grid; }
+.tier {
+  position: relative; display: grid; gap: 6px; align-content: start; text-align: left; cursor: pointer; padding: 14px 14px 12px;
+  border: 1px solid var(--line); background: color-mix(in srgb, var(--scene) 84%, var(--ink) 16%); color: var(--ink);
+  font: 400 12px/1.4 var(--mono); opacity: 0; transform: translateY(10px);
+  animation: rise .6s cubic-bezier(.2, .7, .2, 1) forwards; transition: transform .2s ease, border-color .2s, box-shadow .25s;
+}
+.tier:nth-child(2) { animation-delay: .08s; } .tier:nth-child(3) { animation-delay: .16s; }
+.tier:hover, .tier:focus-visible { transform: translateY(-3px); border-color: var(--ink); box-shadow: 0 10px 24px -14px rgba(0, 0, 0, .45); outline: none; }
+.tier:active { transform: translateY(0) scale(.98); }
+.tier b { font: 700 26px/1 var(--display); letter-spacing: .04em; text-transform: uppercase; }
+.tier i { font-style: normal; color: var(--muted); }
+.tier .size { font-size: 11px; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); }
+.tier.rec { border-color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink); }
+.tier.rec::after {
+  content: 'Empfohlen'; position: absolute; top: -9px; right: 10px; padding: 3px 7px 2px; background: var(--signal); color: #1C1E22;
+  font: 600 10px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase;
+}
+.tier .count { position: absolute; left: 0; bottom: 0; height: 2px; width: 0; background: var(--signal); }
+.tier.rec .count { animation: countdown var(--wait, 9s) linear forwards; }
+.tiers-note { display: none; font: 400 11.5px/1.5 var(--mono); color: var(--muted); max-width: 60ch; }
+#loader.picking .tiers-note { display: block; }
+@keyframes rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+@keyframes countdown { from { width: 0; } to { width: 100%; } }
+@media (max-width: 560px) { .tiers { grid-template-columns: 1fr; } .tier { grid-template-columns: auto 1fr; column-gap: 12px; } .tier b { grid-row: span 3; align-self: center; min-width: 2.4em; } }
+
+/* small motion everywhere: buttons press, cards stagger their details, the lightbox fades in */
+button { -webkit-tap-highlight-color: transparent; }
+.rooms button, .ghost, .shot, .walk-toggle, .sprint-toggle, .lightbox button { transition: color .2s, background-color .25s, border-color .2s, transform .18s ease, box-shadow .25s; }
+.rooms button:active, .ghost:active, .shot:active, .walk-toggle:active, .sprint-toggle:active, .cta:active { transform: scale(.96); }
+.shot:hover, .ghost:hover { transform: translateY(-1px); }
+.card .eyebrow, .card h1, .card h2, .card .lede, .card .specs > div, .card .actions, .card .shot { transition: opacity .55s ease, transform .55s cubic-bezier(.2, .7, .2, 1); }
+.card:not(.on) .eyebrow, .card:not(.on) h1, .card:not(.on) h2, .card:not(.on) .lede, .card:not(.on) .specs > div, .card:not(.on) .actions, .card:not(.on) .shot { opacity: 0; transform: translateY(8px); }
+.card.on h1, .card.on h2 { transition-delay: .05s; } .card.on .lede { transition-delay: .1s; }
+.card.on .specs > div:nth-child(1) { transition-delay: .16s; } .card.on .specs > div:nth-child(2) { transition-delay: .2s; }
+.card.on .specs > div:nth-child(3) { transition-delay: .24s; } .card.on .specs > div:nth-child(4) { transition-delay: .28s; }
+.card.on .actions, .card.on .shot { transition-delay: .3s; }
+dialog.lightbox[open] { animation: lbIn .35s ease both; }
+dialog.lightbox[open] img { animation: rise .5s cubic-bezier(.2, .7, .2, 1) both; }
+@keyframes lbIn { from { opacity: 0; } to { opacity: 1; } }
+.walk-hint { transform: translate(-50%, 8px); transition: opacity .3s, visibility .3s, transform .4s cubic-bezier(.2, .7, .2, 1); }
+body.walking .walk-hint { transform: translate(-50%, 0); }
+.tier-switch { border: 0; background: transparent; color: var(--chrome-dim, rgba(241,240,236,.6)); font: 500 11px/1 var(--mono); letter-spacing: .06em; text-transform: uppercase; cursor: pointer; padding: 4px 0 0; transition: color .2s; }
+.tier-switch:hover { color: var(--signal); }
 
 dialog.lightbox { padding: 0; border: 0; background: #0d0e10; max-width: 100vw; max-height: 100vh; width: 100vw; height: 100vh; }
 dialog.lightbox::backdrop { background: rgba(0, 0, 0, .85); }
@@ -225,6 +273,8 @@ dialog.lightbox::backdrop { background: rgba(0, 0, 0, .85); }
 }
 @media (prefers-reduced-motion: reduce) {
   .scroll-hint i { animation: none; }
+  .tier, .loader-brand, dialog.lightbox[open], dialog.lightbox[open] img { animation: none; opacity: 1; transform: none; }
+  .card .eyebrow, .card h1, .card h2, .card .lede, .card .specs > div, .card .actions, .card .shot { transition: none; }
 }
 </style>
 <div id="loader" role="status">
@@ -232,6 +282,12 @@ dialog.lightbox::backdrop { background: rgba(0, 0, 0, .85); }
     <div class="loader-brand">Seofessionals 3D Demo</div>
     <div class="loader-note" id="load-note">Das Haus wird geladen · 0 %</div>
     <div class="loader-bar"><span id="load-bar"></span></div>
+    <div class="tiers" role="group" aria-label="Darstellungsqualität wählen">
+      <button type="button" class="tier" data-tier="sd"><b>SD</b><span>Flüssig auf jedem Handy</span><i class="size">ca. 38 MB · leichte Texturen</i><span class="count"></span></button>
+      <button type="button" class="tier" data-tier="hd"><b>HD</b><span>Scharf auf Tablet und Laptop</span><i class="size">ca. 100 MB · 2K-Texturen, ca. 1 GB Grafikspeicher</i><span class="count"></span></button>
+      <button type="button" class="tier" data-tier="max"><b>Max</b><span>Volle Schärfe bis 4K</span><i class="size">ca. 100 MB · alles in voller Auflösung, starke Grafikkarte</i><span class="count"></span></button>
+    </div>
+    <p class="tiers-note" id="tiers-note">Tippen Sie auf eine Stufe. Die empfohlene startet von selbst.</p>
   </div>
 </div>
 
@@ -347,6 +403,7 @@ dialog.lightbox::backdrop { background: rgba(0, 0, 0, .85); }
   <div class="actions">
     <button type="button" class="cta" id="book">Projekt anfragen</button>
     <button type="button" class="ghost" data-go="0">Noch einmal durchgehen</button>
+    <button type="button" class="tier-switch" id="tier-switch">Qualität ändern</button>
   </div>
   <p class="contact" id="contact" hidden>Sprechen Sie Seofessionals an. Wir bauen Ihr Haus, Ihre Wohnung oder Ihr Ladenlokal als begehbare 3D-Welt für Ihre Website.</p>
   <p class="credits">Gerendert mit Blender Cycles, Lightmaps in 2K gebacken · Materialien: ambientCG (CC0) · Möbel, Pflanzen und Himmel: Poly Haven (CC0) · Kunst: Hilma af Klint, Paul Klee (gemeinfrei)</p>
@@ -433,14 +490,73 @@ if (AGX_GRADED) {
     return pow( clamp( d, 0.0, 1.0 ), vec3( 2.2 ) );
   }`;
 }
+/* ================= Quality tier (chosen before anything heavy is created) ================= */
+// SD: pre-shrunk textures (tex_sd), 1K light HDR, 2K backdrop, 1x pixels, no MSAA or bloom: fits 3-4 GB phones.
+// HD: 2K hero textures, up to 1.5x pixels, MSAA. Max: same files, full device pixel ratio up to 2.25x, MSAA, bloom.
+function recommendTier() {
+  const mem = navigator.deviceMemory || 0, coarse = matchMedia('(pointer: coarse)').matches;
+  let gpu = '';
+  try {
+    const gl = document.createElement('canvas').getContext('webgl');
+    const ext = gl && gl.getExtension('WEBGL_debug_renderer_info');
+    gpu = ext ? gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) : '';
+    const lose = gl && gl.getExtension('WEBGL_lose_context'); if (lose) lose.loseContext();
+  } catch (e) { /* no hint */ }
+  const weakGpu = /Mali-[GT]\d|PowerVR|Adreno \(TM\) [1-5]\d\d|Adreno \(TM\) 6[0-3]\d|Intel\(R\) HD Graphics [2-5]/i.test(gpu);
+  const phone = coarse && Math.min(screen.width, screen.height) < 600;
+  if ((mem && mem <= 4) || weakGpu || phone) return 'sd';
+  if (coarse || (mem && mem < 8) || Math.max(screen.width, screen.height) * (devicePixelRatio || 1) < 2200) return 'hd';
+  return 'max';
+}
+function chooseTier() {
+  const q = new URLSearchParams(location.search).get('q');
+  if (['sd', 'hd', 'max'].includes(q)) return Promise.resolve(q);
+  const rec = recommendTier();
+  let saved = null;
+  try { saved = localStorage.getItem('seo3d-tier'); } catch (e) { /* private mode */ }
+  const pre = ['sd', 'hd', 'max'].includes(saved) ? saved : rec;
+  return new Promise((resolve) => {
+    const wait = saved ? 4 : 9;
+    loaderEl.classList.add('picking');
+    loaderEl.style.setProperty('--wait', wait + 's');
+    const btns = $$('.tier');
+    btns.forEach((b) => b.classList.toggle('rec', b.dataset.tier === pre));
+    $('#tiers-note').textContent = saved ? 'Ihre letzte Wahl startet gleich. Tippen Sie, um sie zu ändern.' : 'Tippen Sie auf eine Stufe. Die empfohlene startet von selbst.';
+    let done = false;
+    const go = (t) => {
+      if (done) return; done = true; clearTimeout(timer);
+      try { localStorage.setItem('seo3d-tier', t); } catch (e) { /* ignore */ }
+      loaderEl.classList.remove('picking');
+      resolve(t);
+    };
+    const timer = setTimeout(() => go(pre), wait * 1000);
+    btns.forEach((b) => b.addEventListener('click', () => go(b.dataset.tier)));
+    // any interaction elsewhere stops the countdown so nobody is rushed
+    loaderEl.addEventListener('pointerdown', (e) => { if (!e.target.closest('.tier')) { clearTimeout(timer); $$('.tier .count').forEach((c) => { c.style.animation = 'none'; }); } });
+    (btns.find((b) => b.dataset.tier === pre) || btns[0]).focus({ preventScroll: true });
+  });
+}
+const TIER = await chooseTier();
+const SD = TIER === 'sd', MAX = TIER === 'max';
+note('Das Haus wird geladen · 0 %');
+
 let renderer;
 try {
-  renderer = new T.WebGLRenderer({ canvas: $('#scene'), antialias: true, powerPreference: 'high-performance', stencil: false });
+  renderer = new T.WebGLRenderer({ canvas: $('#scene'), antialias: !SD, powerPreference: SD ? 'default' : 'high-performance', stencil: false });
 } catch (e) { fail('Für den Rundgang wird WebGL benötigt. Es ist in diesem Browser ausgeschaltet oder nicht verfügbar.'); throw e; }
 // Quality tier. Phones and low-memory machines get the same files, but textures are scaled down before they
 // reach the GPU (about a quarter of the video memory) and sharpness comes from pixel density instead of MSAA.
-const LITE = (matchMedia('(pointer: coarse)').matches && Math.min(screen.width, screen.height) < 900) || (navigator.deviceMemory || 8) <= 4;
-let dpr = Math.min(window.devicePixelRatio || 1, LITE ? 2 : 1.75);
+const LITE = SD;
+let dpr = Math.min(window.devicePixelRatio || 1, SD ? 1.25 : MAX ? 2.25 : 1.5);
+// a phone that still runs out of video memory gets a clear way out instead of a dead tab
+$('#scene').addEventListener('webglcontextlost', (e) => {
+  e.preventDefault();
+  loaderEl.classList.remove('done'); loaderEl.removeAttribute('aria-hidden');
+  fail('Der Grafikspeicher dieses Geräts ist voll. Bitte laden Sie die Seite in SD-Qualität.');
+  const b = document.createElement('button'); b.type = 'button'; b.className = 'cta'; b.textContent = 'In SD neu laden';
+  b.addEventListener('click', () => { try { localStorage.setItem('seo3d-tier', 'sd'); } catch (er) { /* ignore */ } location.search = '?q=sd'; });
+  $('.loader-inner').appendChild(b);
+}, false);
 renderer.setPixelRatio(dpr);
 renderer.setSize(innerWidth, innerHeight, false);
 renderer.outputColorSpace = T.SRGBColorSpace;
@@ -451,11 +567,12 @@ const scene = new T.Scene();
 const camera = new T.PerspectiveCamera(60, innerWidth / innerHeight, 0.08, 800);
 const pmrem = new T.PMREMGenerator(renderer);
 // HDR pipeline: scene -> soft bloom on windows and lamps -> AgX tone map (OutputPass)
-const composer = new EffectComposer(renderer, new T.WebGLRenderTarget(innerWidth * dpr, innerHeight * dpr, { type: T.HalfFloatType, samples: LITE ? 0 : 4 }));
+const composer = new EffectComposer(renderer, new T.WebGLRenderTarget(innerWidth * dpr, innerHeight * dpr, { type: T.HalfFloatType, samples: SD ? 0 : 4 }));
 composer.setPixelRatio(dpr);
 composer.addPass(new RenderPass(scene, camera));
 const bloom = new UnrealBloomPass(new T.Vector2(innerWidth / 2, innerHeight / 2), 0.2, 0.55, 1.0);
 composer.addPass(bloom);
+bloom.enabled = !SD;
 composer.addPass(new OutputPass());
 // the scene renders into the composer's HDR target, so shaders must be compiled for that target, not the screen
 const precompile = () => { renderer.setRenderTarget(composer.readBuffer); renderer.compile(scene, camera); renderer.setRenderTarget(null); };
@@ -485,6 +602,8 @@ let stallTimer = setInterval(() => {
     note(`Das Haus wird geladen · ${Math.round(Math.min(1, progress.done / progress.total) * 100)} % · wartet auf ${slow.slice(0, 3).join(', ') || '—'}${failures.length ? ' · fehlgeschlagen: ' + failures.slice(-3).map(short).join(', ') : ''}`);
   }
 }, 3000);
+if (SD) manager.setURLModifier((url) => url.replace(/(^|\/)tex\//, '$1tex_sd/'));
+T.Cache.enabled = true;      // one download and one decode per image URL, whichever zone asks first
 const gltfLoader = new GLTFLoader(manager);
 const texLoader = new T.TextureLoader(manager);
 const b64 = (s) => { const bin = atob(s), u = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i); return u.buffer; };
@@ -518,6 +637,37 @@ const flames = [];
 // Flames: animated value noise rising up each card, shaped into tongues by height and card-edge falloff,
 // coloured from deep orange at the burner to pale yellow; additive, so overlapping cards build a hot core.
 const flameUniforms = { uTime: { value: 0 } };
+function windify(mat, amp) {
+  mat.onBeforeCompile = (sh) => {
+    sh.uniforms.uTime = flameUniforms.uTime;
+    sh.vertexShader = 'uniform float uTime;\n' + sh.vertexShader.replace('#include <begin_vertex>', `#include <begin_vertex>
+      float hgt = clamp(uv.y, 0.0, 1.0); hgt *= hgt;
+      vec3 ip = vec3(instanceMatrix[3][0], 0.0, instanceMatrix[3][2]);
+      float ph = ip.x * 0.37 + ip.z * 0.23;
+      float gust = 0.6 + 0.4 * sin(uTime * 0.31 + ip.x * 0.05);
+      transformed.x += (sin(uTime * 1.35 + ph) + 0.35 * sin(uTime * 3.1 + ph * 1.7)) * ${amp.toFixed(3)} * hgt * gust;
+      transformed.z += cos(uTime * 1.1 + ph * 1.3) * ${(amp * 0.6).toFixed(3)} * hgt * gust;`);
+  };
+  mat.customProgramCacheKey = () => 'wind' + amp;
+}
+function rippleTexture() {
+  const N = 256, c = document.createElement('canvas'); c.width = c.height = N;
+  const g = c.getContext('2d'), img = g.createImageData(N, N), H = new Float32Array(N * N);
+  const waves = [[3, 1, 0.0], [1, 4, 1.3], [5, -2, 2.1], [-2, 3, 0.7], [7, 5, 4.0], [4, -7, 2.9]];
+  for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
+    let h = 0; for (const [a, b, p] of waves) h += Math.sin((a * x + b * y) * 2 * PI / N + p) / Math.hypot(a, b);
+    H[y * N + x] = h;
+  }
+  for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
+    const dx = H[y * N + (x + 1) % N] - H[y * N + (x + N - 1) % N], dy = H[((y + 1) % N) * N + x] - H[((y + N - 1) % N) * N + x];
+    const nx = -dx * 2.2, ny = -dy * 2.2, l = Math.hypot(nx, ny, 1), o = (y * N + x) * 4;
+    img.data[o] = (nx / l * 0.5 + 0.5) * 255; img.data[o + 1] = (ny / l * 0.5 + 0.5) * 255; img.data[o + 2] = (1 / l * 0.5 + 0.5) * 255; img.data[o + 3] = 255;
+  }
+  g.putImageData(img, 0, 0);
+  const t = new T.CanvasTexture(c); t.wrapS = t.wrapT = T.RepeatWrapping; t.colorSpace = T.NoColorSpace;
+  return t;
+}
+const ripples = [];
 function makeFlameMaterial() {
   return new T.ShaderMaterial({
     uniforms: flameUniforms, transparent: true, depthWrite: false, blending: T.AdditiveBlending, side: T.DoubleSide,
@@ -553,6 +703,7 @@ const HERO = ['OakFloor', 'Plaster', 'Ceiling', 'Limestone', 'Marble', 'Oak', 'O
   'Terrazzo', 'Linen', 'LinenWhite', 'Rug', 'RugNavy', 'LimewashClay', 'LawnTex', 'Paving', 'DrivePavers', 'PathStone', 'Cedar', 'Travertine', 'DoorOak'];
 const capped = new WeakSet();
 function capTexture(t, cap) {
+  return;   // tiers ship pre-sized files (tex_sd for SD); scaling on the device only cost memory
   if (!LITE || !t || capped.has(t) || !t.image) return;
   capped.add(t);
   const im = t.image, w = im.width, h = im.height;
@@ -577,6 +728,10 @@ function prepareMaterial(m, zone) {
   if (kind === 'glass' || (m.transmission > 0 && !m.userData.lightmap)) {
     const water = name === 'Water';
     const g = new T.MeshPhysicalMaterial({ color: water ? '#1f8fa3' : '#eef4f4', roughness: water ? 0.06 : 0.02, metalness: 0, transparent: true, opacity: water ? 0.48 : (name === 'ShowerGlass' ? 0.16 : 0.07), depthWrite: false, side: T.DoubleSide, envMapIntensity: water ? 1.6 : 1.2 });
+    if (water) {
+      const nt = rippleTexture(); nt.repeat.set(6, 3); g.normalMap = nt; g.normalScale.set(0.22, 0.22);
+      g.roughness = 0.04; g.clearcoat = 0; ripples.push(nt);
+    }
     g.name = m.name; return g;
   }
   if (kind === 'flame') {
@@ -619,9 +774,9 @@ function prepareMaterial(m, zone) {
   if (name === 'Shade' && m.emissiveIntensity) m.emissiveIntensity *= 0.45;
   if (/^(Linen|Boucle|Knit|WoolRust|Towel|VelvetMoss|PorchCushion)/.test(name) && m.normalScale) m.normalScale.multiplyScalar(0.45);
   capMaterial(m, name);
-  const an = Math.min(LITE ? 4 : 8, renderer.capabilities.getMaxAnisotropy());
+  const an = Math.min(SD ? 4 : MAX ? 16 : 8, renderer.capabilities.getMaxAnisotropy());
   // lightmaps too: the lawn and floors are seen at grazing angles, where isotropic mips smear the atlas into a milky wash
-  for (const k of ['map', 'normalMap', 'roughnessMap', 'metalnessMap', 'clearcoatNormalMap', 'lightMap']) if (m[k]) m[k].anisotropy = k === 'lightMap' ? Math.min(16, renderer.capabilities.getMaxAnisotropy()) : an;
+  for (const k of ['map', 'normalMap', 'roughnessMap', 'metalnessMap', 'clearcoatNormalMap', 'lightMap']) if (m[k]) m[k].anisotropy = k === 'lightMap' ? Math.min(SD ? 8 : 16, renderer.capabilities.getMaxAnisotropy()) : an;
   m.needsUpdate = true;
   return m;
 }
@@ -647,12 +802,58 @@ function jsonToGlb(json) {
   u8.set(bin, o + 8);
   return out;
 }
+// Every zone file references the same shared textures (plaster, oak, linen ...). Parsed separately, each file
+// would upload its own copy to the GPU, up to six times over, which is what exhausted phone memory. One image
+// source per texture file, shared by every material in every zone.
+const SOURCES = new Map();
+const TEX_KEYS = ['map', 'normalMap', 'roughnessMap', 'metalnessMap', 'emissiveMap', 'aoMap', 'alphaMap', 'clearcoatNormalMap', 'clearcoatMap', 'clearcoatRoughnessMap', 'sheenColorMap', 'sheenRoughnessMap', 'specularIntensityMap', 'specularColorMap', 'transmissionMap'];
+function shareImages(g) {
+  const js = g.parser.json, srcUri = new Map();
+  for (const [obj, a] of g.parser.associations) {
+    if (!obj || !obj.isTexture || a.textures === undefined) continue;
+    const td = js.textures[a.textures], ext = td.extensions || {};
+    const si = ext.EXT_texture_webp ? ext.EXT_texture_webp.source : td.source;
+    const uri = js.images[si] && js.images[si].uri;
+    if (uri) srcUri.set(obj.source, uri.split('/').pop());
+  }
+  g.scene.traverse((o) => {
+    if (!o.isMesh) return;
+    for (const m of [].concat(o.material)) for (const k of TEX_KEYS) {
+      const t = m[k]; if (!t || !t.source) continue;
+      const key = srcUri.get(t.source); if (!key) continue;
+      const c = SOURCES.get(key);
+      if (!c) { SOURCES.set(key, t.source); continue; }
+      if (c === t.source) continue;
+      const im = t.source.data; t.source = c; t.needsUpdate = true;
+      if (im && im !== c.data && im.close) im.close();
+    }
+  });
+}
+// HD: same files as Max, but detail maps are scaled once on load (normals and roughness of secondary surfaces),
+// so a laptop or tablet holds about a third of Max's video memory. Lightmaps and the big hero surfaces stay sharp.
+const HD_KEEP = /^(lm_|OakFloor_c|Plaster_c|Travertine_c|LawnTex_c|DrivePavers_c|Marble_c|PathStone_c|Cedar_c)/;
+async function shrinkForHD() {
+  if (TIER !== 'hd' || !window.createImageBitmap) return;
+  for (const [name, src] of SOURCES) {
+    const im = src.data; if (!im || !im.width || HD_KEEP.test(name)) continue;
+    const data = /(_orm|metal|rough|Rough)/.test(name), normal = /(_n\.webp|nor_gl|normal)/i.test(name);
+    const cap = data ? 512 : normal ? 512 : 1024;
+    if (Math.max(im.width, im.height) <= cap) continue;
+    const f = cap / Math.max(im.width, im.height);
+    try {
+      const small = await createImageBitmap(im, { resizeWidth: Math.round(im.width * f), resizeHeight: Math.round(im.height * f), resizeQuality: 'high' });
+      if (im.close) im.close();
+      src.data = small; src.needsUpdate = true;
+    } catch (e) { /* keep the original */ }
+  }
+}
 async function loadFile(key, file) {
   const res = await fetch(file);
   if (!res.ok) throw new Error(`${file}: ${res.status}`);
   const json = await res.json();
   bump();
   const g = await gltfLoader.parseAsync(jsonToGlb(json), file.replace(/[^/]+$/, ''));
+  shareImages(g);
   g.scene.traverse((o) => {
     if (!o.isMesh) return;
     o.material = Array.isArray(o.material) ? o.material.map((m) => prepareMaterial(m, key)) : prepareMaterial(o.material, key);
@@ -674,6 +875,7 @@ function buildBillboards() {
       const t = texLoader.load(`tex/${b[v].file}`, (tx) => capTexture(tx, 512)); t.colorSpace = T.SRGBColorSpace; t.anisotropy = 4;
       const bm = new T.MeshBasicMaterial({ map: t, alphaTest: 0.42, side: T.DoubleSide, toneMapped: true });
       bm.color.setRGB(0.8, 0.8, 0.84);
+      if (!reduceMotion) windify(bm, sz > 4 ? 0.012 : 0.03);   // tall trees move less in local units, shrubs a little more
       return bm;
     };
     const [sx, sy, sz] = b.size;
@@ -696,7 +898,7 @@ function buildBillboards() {
 let outdoorEnv, skyTex;
 const roomEnv = {};
 async function loadSky() {
-  const j = await (await fetch(man.sky.file)).json();
+  const j = await (await fetch(SD ? man.sky.file.replace('sky.json', 'sky_sd.json') : man.sky.file)).json();
   bump();
   const td = new RGBELoader().setDataType(T.HalfFloatType).parse(b64(j.hdr));
   const t = new T.DataTexture(td.data, td.width, td.height, T.RGBAFormat, td.type);
@@ -709,7 +911,7 @@ async function loadSky() {
   // full-resolution backdrop (mountains, tree lines); the 2K HDR stays the light source
   if (man.sky.bg) {
     try {
-      const bg = await texLoader.loadAsync(man.sky.bg);
+      const bg = await texLoader.loadAsync(SD ? man.sky.bg.replace('bg.webp', 'bg_sd.webp') : man.sky.bg);
       bg.colorSpace = T.SRGBColorSpace; bg.mapping = T.EquirectangularReflectionMapping; bg.anisotropy = 4;
       capTexture(bg, 2048);
       scene.background = bg; scene.backgroundIntensity = 1 / (man.sky.bgScale || 1);
@@ -739,7 +941,7 @@ function clampedSky(src, maxV = 3) {
   return t;
 }
 function captureRoomEnvs() {
-  const rt = new T.WebGLCubeRenderTarget(256, { type: T.HalfFloatType });
+  const rt = new T.WebGLCubeRenderTarget(SD ? 128 : 256, { type: T.HalfFloatType });
   const cam = new T.CubeCamera(0.05, 400, rt);
   const soft = clampedSky(skyTex), softEnv = pmrem.fromEquirectangular(soft).texture;
   const keepBg = scene.background;
@@ -1001,6 +1203,40 @@ function stepWalk(dt) {
 /* ================= Front door: swings open as you approach (or on click / E), with sound ================= */
 const door = { pivot: null, angle: 0, from: 0, t: 1, open: false, manualUntil: 0, meshes: [] };
 const DOOR_OPEN = -1.45;          // radians about the hinge; negative swings the leaf into the hall
+function setupGarden() {
+  // fire table on the terrace (Blender: centre 12.8, 15.4; burner bed at 0.83 m)
+  if (!flameMat) flameMat = makeFlameMaterial();
+  for (let i = 0; i < 5; i++) {
+    const g = new T.PlaneGeometry(0.42, 0.34); g.translate(0, 0.17, 0);
+    const f = new T.Mesh(g, flameMat);
+    f.position.copy(B(12.8 + (Math.random() - 0.5) * 0.05, 15.4 - 0.44 + i * 0.22, 0.83));
+    f.rotation.y = PI / 2 + (Math.random() - 0.5) * 0.5;
+    f.renderOrder = 2; scene.add(f);
+  }
+  if (reduceMotion) return;
+  // a few swallows: two thin wings that beat and glide along slow, overlapping loops
+  const wingGeo = new T.BufferGeometry();
+  wingGeo.setAttribute('position', new T.Float32BufferAttribute([0, 0, -0.06, 0, 0, 0.1, 0.38, 0.02, 0.02], 3));
+  const birdMat = new T.MeshBasicMaterial({ color: 0x23262b, side: T.DoubleSide, toneMapped: false });
+  for (let i = 0; i < 5; i++) {
+    const b = new T.Group(), l = new T.Mesh(wingGeo, birdMat), r = new T.Mesh(wingGeo, birdMat);
+    r.scale.x = -1; b.add(l, r); b.scale.setScalar(1.3);
+    b.userData = { l, r, rad: 14 + i * 4.5, h: 17 + i * 2.5, sp: 0.16 + i * 0.03, ph: i * 1.3, cx: 13 + i, cz: -(10 + i * 2) };
+    birds.push(b); scene.add(b);
+  }
+}
+const birds = [];
+function stepGarden(t, dt) {
+  for (const r of ripples) { r.offset.x = t * 0.018; r.offset.y = t * 0.011; }
+  for (const b of birds) {
+    const u = b.userData, a = t * u.sp + u.ph, rad = u.rad * (1 + 0.25 * Math.sin(t * 0.07 + u.ph));
+    b.position.set(u.cx + Math.cos(a) * rad, u.h + Math.sin(t * 0.5 + u.ph) * 1.5, u.cz + Math.sin(a) * rad * 0.7);
+    b.rotation.y = -a + PI;
+    const glide = Math.sin(t * 0.6 + u.ph) > 0.4;
+    const flap = glide ? 0.12 : Math.sin(t * 13 + u.ph * 5) * 0.75;
+    u.l.rotation.z = flap; u.r.rotation.z = -flap;
+  }
+}
 function setupDoor() {
   const z = scene.getObjectByName('zone_models/DOOR_fx.json');
   if (!z) return;
@@ -1124,6 +1360,7 @@ $$('[data-go]').forEach((el) => {
   if (el.tagName !== 'BUTTON') el.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); goTo(i); } });
 });
 $('#book').addEventListener('click', () => { $('#contact').hidden = false; });
+$('#tier-switch').addEventListener('click', () => { try { localStorage.removeItem('seo3d-tier'); } catch (e) { /* ignore */ } location.href = location.pathname; });
 const lb = $('#lightbox'), lbImg = $('#lb-img');
 function openRender(k) {
   const c = man.cameras[k];
@@ -1165,8 +1402,10 @@ async function boot() {
   await loadSky();
   // exterior first, then the rooms, a few at a time
   for (let i = 0; i < order.length; i += 3) await Promise.all(order.slice(i, i + 3).map(loadZone));
+  await shrinkForHD();
   buildBillboards();
   setupDoor();
+  setupGarden();
   note('Die Räume werden beleuchtet'); $('#load-bar').style.width = '94%';
   await tick();
   camera.position.set(9, 25, 40); camera.lookAt(9, 0, -8);
@@ -1217,6 +1456,7 @@ function update(dt) {
   const exTarget = Math.pow(2, ev);
   renderer.toneMappingExposure += (exTarget - renderer.toneMappingExposure) * (dt ? 1 - Math.exp(-dt * 2.2) : 1);
   flameUniforms.uTime.value = performance.now() / 1000;
+  stepGarden(flameUniforms.uTime.value, dt);
   stepDoor(dt);
 
   if (!walk.on) {
@@ -1230,6 +1470,7 @@ function update(dt) {
         card.style.setProperty('--shift', `${shift.toFixed(1)}px`);
         card.style.visibility = op < .01 ? 'hidden' : 'visible';
         card.inert = op < .5;
+        card.classList.toggle('on', op > .5);
       }
     });
   }
