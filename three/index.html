@@ -1,0 +1,477 @@
+<!doctype html>
+<html lang="de">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Linden-Haus three.js</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* One fixed WebGL house baked in Blender; scrolling walks the camera through it room by room.
+   Editorial card on the left, room index top-right, live floor plan and status bottom-right. */
+:root {
+  --paper: #FAF9F6;
+  --ink: #1C1E22;
+  --muted: #5D6068;
+  --line: rgba(28, 30, 34, .14);
+  --signal: #FFE433;
+  --signal-ink: #1C1E22;
+  --chrome: rgba(26, 28, 32, .80);
+  --chrome-ink: #F1F0EC;
+  --chrome-dim: rgba(241, 240, 236, .62);
+  --scene: #DCE3E6;
+  --shadow: rgba(15, 18, 24, .28);
+  --display: "Barlow Condensed", "Arial Narrow", "Roboto Condensed", sans-serif;
+  --body: "Barlow", "Helvetica Neue", Arial, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #18191C; --ink: #EEEDE8; --muted: #A6A7A2; --line: rgba(238, 237, 232, .14);
+    --chrome: rgba(10, 11, 13, .82); --scene: #1D2125; --shadow: rgba(0, 0, 0, .55);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #18191C; --ink: #EEEDE8; --muted: #A6A7A2; --line: rgba(238, 237, 232, .14);
+  --chrome: rgba(10, 11, 13, .82); --scene: #1D2125; --shadow: rgba(0, 0, 0, .55);
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: auto; }
+body { margin: 0; background: var(--scene); color: var(--ink); font-family: var(--body); font-size: 15px; -webkit-font-smoothing: antialiased; }
+#scene { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: pan-y; }
+body.walking #scene { touch-action: none; cursor: grab; }
+body.walking #scene:active { cursor: grabbing; }
+.vignette { position: fixed; inset: 0; pointer-events: none; background: radial-gradient(120% 90% at 55% 50%, transparent 60%, rgba(18, 20, 24, .2) 100%); }
+#track { height: 1400vh; }
+body.walking #track { height: 0; }
+
+.studio {
+  position: fixed; z-index: 5;
+  top: calc(env(safe-area-inset-top, 0px) + 16px);
+  left: max(16px, calc(env(safe-area-inset-left, 0px) + 16px));
+  display: grid; gap: 2px; padding: 9px 14px 10px;
+  background: var(--chrome); color: var(--chrome-ink);
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+}
+.studio-name { font: 600 17px/1 var(--display); text-transform: uppercase; letter-spacing: .07em; }
+.studio-sub { font: 400 12px/1.2 var(--body); color: var(--chrome-dim); }
+
+.rooms {
+  position: fixed; z-index: 5;
+  top: calc(env(safe-area-inset-top, 0px) + 16px);
+  right: max(16px, calc(env(safe-area-inset-right, 0px) + 16px));
+  display: grid; gap: 2px; padding: 6px;
+  background: var(--chrome);
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+}
+.rooms button {
+  display: flex; align-items: baseline; gap: 10px; border: 0; background: transparent; color: var(--chrome-dim);
+  font: 500 14px/1 var(--body); padding: 8px 12px 8px 10px; text-align: left; cursor: pointer; transition: color .2s, background-color .2s;
+}
+.rooms button .num { font: 400 11px/1 var(--mono); letter-spacing: .04em; opacity: .8; min-width: 1.6em; }
+.rooms button:hover { color: var(--chrome-ink); }
+.rooms button[aria-current="true"] { background: var(--signal); color: var(--signal-ink); }
+button:focus-visible, .plan [data-go]:focus-visible { outline: 2px solid var(--signal); outline-offset: 2px; }
+
+.card {
+  --shift: 0px;
+  position: fixed; z-index: 4;
+  left: max(32px, calc(env(safe-area-inset-left, 0px) + 16px));
+  top: 50%;
+  transform: translateY(calc(-50% + var(--shift)));
+  width: min(410px, calc(100vw - 32px));
+  max-height: calc(100vh - 150px); overflow-y: auto; scrollbar-width: thin;
+  padding: 26px 26px 22px;
+  background: color-mix(in srgb, var(--paper) 94%, transparent);
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 30px 70px -36px var(--shadow);
+  display: grid; gap: 14px;
+  will-change: opacity, transform;
+}
+.card:not([data-i="0"]) { opacity: 0; visibility: hidden; }
+body.walking .card { opacity: 0 !important; visibility: hidden !important; }
+.eyebrow { margin: 0; font: 500 11.5px/1.3 var(--mono); text-transform: uppercase; letter-spacing: .09em; color: var(--muted); }
+.card h1, .card h2 { margin: 0; font-family: var(--display); font-weight: 700; text-transform: uppercase; line-height: .9; letter-spacing: .005em; text-wrap: balance; }
+.card h1 { font-size: clamp(52px, 6.4vw, 86px); }
+.card h2 { font-size: clamp(40px, 4.2vw, 56px); }
+.lede { margin: 0; font-size: 16px; line-height: 1.55; max-width: 38ch; }
+.specs { margin: 0; display: grid; grid-template-columns: 1fr 1fr; border-top: 1px solid var(--line); }
+.specs div { padding: 10px 0 9px; border-bottom: 1px solid var(--line); min-width: 0; }
+.specs div:nth-child(odd) { padding-right: 12px; }
+.specs dt { font: 400 10.5px/1.2 var(--mono); text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+.specs dd { margin: 4px 0 0; font-size: 14px; line-height: 1.3; font-variant-numeric: tabular-nums; }
+
+.actions { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.cta {
+  border: 0; cursor: pointer; background: var(--signal); color: var(--signal-ink);
+  font: 700 19px/1 var(--display); text-transform: uppercase; letter-spacing: .05em; padding: 15px 28px 14px; transition: transform .2s, filter .2s;
+}
+.cta:hover { transform: translateY(-1px); filter: brightness(1.04); }
+.ghost {
+  border: 1px solid var(--line); background: transparent; color: var(--ink); cursor: pointer;
+  font: 600 17px/1 var(--display); text-transform: uppercase; letter-spacing: .05em; padding: 14px 20px 13px;
+}
+.ghost:hover { border-color: var(--ink); }
+.shot { display: inline-flex; align-items: center; gap: 8px; border: 1px solid var(--line); background: transparent; color: var(--ink); cursor: pointer; font: 500 12.5px/1 var(--mono); text-transform: uppercase; letter-spacing: .06em; padding: 10px 12px; justify-self: start; }
+.shot:hover { border-color: var(--ink); }
+.shot svg { width: 14px; height: 14px; }
+.scroll-hint { margin: 0; display: flex; align-items: center; gap: 10px; font: 400 12px/1 var(--mono); color: var(--muted); text-transform: uppercase; letter-spacing: .08em; }
+.scroll-hint i { display: block; width: 1px; height: 26px; background: var(--ink); opacity: .5; animation: drip 2.2s ease-in-out infinite; transform-origin: top; }
+@keyframes drip { 0%, 100% { transform: scaleY(.3); } 50% { transform: scaleY(1); } }
+.contact { margin: 0; padding: 14px 16px; background: color-mix(in srgb, var(--ink) 5%, transparent); font-size: 14.5px; line-height: 1.6; }
+.contact span { font-family: var(--mono); font-size: 13.5px; user-select: all; }
+.credits { margin: 0; font: 400 11px/1.5 var(--mono); color: var(--muted); }
+
+.plan {
+  position: fixed; z-index: 3;
+  right: max(16px, calc(env(safe-area-inset-right, 0px) + 16px));
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 138px);
+  width: 214px; padding: 10px 10px 8px; margin: 0;
+  background: var(--chrome); color: var(--chrome-ink);
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+}
+.plan svg { display: block; width: 100%; height: auto; }
+.plan .rm { fill: rgba(241, 240, 236, .05); stroke: rgba(241, 240, 236, .45); stroke-width: .8; cursor: pointer; transition: fill .3s; }
+.plan .rm:hover { fill: rgba(241, 240, 236, .14); }
+.plan .rm.on { fill: var(--signal); }
+.plan .gar { fill: none; stroke: rgba(241, 240, 236, .25); stroke-width: .8; stroke-dasharray: 2 2; }
+.plan text { font: 500 5.6px var(--mono); fill: rgba(241, 240, 236, .75); pointer-events: none; text-transform: uppercase; letter-spacing: .04em; }
+.plan text.on { fill: var(--signal-ink); }
+.plan .cam path { fill: var(--signal); opacity: .55; }
+.plan .cam circle { fill: var(--signal); stroke: #1C1E22; stroke-width: 1; }
+.plan figcaption { margin-top: 6px; display: flex; justify-content: space-between; font: 400 10px/1.2 var(--mono); color: var(--chrome-dim); letter-spacing: .05em; text-transform: uppercase; }
+
+.status {
+  position: fixed; z-index: 3;
+  right: max(16px, calc(env(safe-area-inset-right, 0px) + 16px));
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 24px);
+  width: 214px; padding: 10px 14px 12px; display: grid; gap: 8px;
+  background: var(--chrome); color: var(--chrome-ink);
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+}
+.status-row { display: flex; justify-content: space-between; gap: 16px; font: 400 11.5px/1.2 var(--mono); letter-spacing: .05em; text-transform: uppercase; }
+.status-row span:last-child { color: var(--chrome-dim); }
+.status-bar { height: 2px; background: rgba(241, 240, 236, .18); }
+.status-bar span { display: block; height: 100%; width: 0; background: var(--signal); }
+.walk-toggle { border: 0; background: var(--signal); color: var(--signal-ink); cursor: pointer; font: 700 15px/1 var(--display); text-transform: uppercase; letter-spacing: .06em; padding: 9px 10px 8px; }
+body.walking .walk-toggle { background: transparent; color: var(--chrome-ink); box-shadow: inset 0 0 0 1px rgba(241, 240, 236, .4); }
+
+.walk-hint {
+  position: fixed; z-index: 4; left: 50%; bottom: calc(env(safe-area-inset-bottom, 0px) + 24px); transform: translateX(-50%);
+  padding: 10px 14px; background: var(--chrome); color: var(--chrome-ink); font: 400 12px/1.4 var(--mono); letter-spacing: .04em; text-align: center;
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); opacity: 0; visibility: hidden; transition: opacity .3s, visibility .3s;
+}
+.walk-hint b { color: var(--signal); font-weight: 500; }
+body.walking .walk-hint { opacity: 1; visibility: visible; }
+.sprint-toggle {
+  position: fixed; z-index: 4; right: calc(env(safe-area-inset-right, 0px) + 16px); bottom: calc(env(safe-area-inset-bottom, 0px) + 24px);
+  border: 0; padding: 12px 16px 11px; background: var(--chrome); color: var(--chrome-ink); cursor: pointer;
+  font: 700 14px/1 var(--display); text-transform: uppercase; letter-spacing: .06em; box-shadow: inset 0 0 0 1px rgba(241, 240, 236, .4);
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); opacity: 0; visibility: hidden; transition: opacity .3s, visibility .3s;
+}
+.sprint-toggle[aria-pressed="true"] { background: var(--signal); color: var(--signal-ink); box-shadow: none; }
+body.walking .sprint-toggle { opacity: 1; visibility: visible; }
+@media (max-width: 700px) { .walk-hint { bottom: calc(env(safe-area-inset-bottom, 0px) + 78px); max-width: calc(100vw - 32px); } }
+
+#loader {
+  position: fixed; inset: 0; z-index: 20; display: grid; place-items: center;
+  background: var(--scene); transition: opacity .9s ease, visibility .9s;
+}
+#loader.done { opacity: 0; visibility: hidden; }
+.loader-inner { display: grid; gap: 12px; justify-items: center; text-align: center; padding-inline: 24px; }
+.loader-brand { font: 700 30px/1 var(--display); text-transform: uppercase; letter-spacing: .08em; color: var(--ink); }
+.loader-note { font: 400 12.5px/1.5 var(--mono); color: var(--muted); max-width: 44ch; }
+.loader-bar { width: 200px; height: 2px; background: var(--line); overflow: hidden; }
+.loader-bar span { display: block; height: 100%; width: 0; background: var(--ink); transition: width .3s; }
+#loader.failed .loader-bar { display: none; }
+.loader-brand small { font: 500 13px/1 var(--mono); letter-spacing: .12em; color: var(--signal); vertical-align: middle; margin-left: 8px; }
+.loader-brand { animation: rise .9s cubic-bezier(.2, .7, .2, 1) both; }
+.loader-bar span { box-shadow: 0 0 12px rgba(255, 228, 51, .0); background: linear-gradient(90deg, var(--ink), var(--ink) 70%, var(--signal)); }
+#loader.picking .loader-note, #loader.picking .loader-bar { display: none; }
+.tiers { display: none; gap: 10px; grid-template-columns: repeat(3, minmax(0, 1fr)); width: min(640px, calc(100vw - 32px)); margin-top: 8px; }
+#loader.picking .tiers { display: grid; }
+.tier {
+  position: relative; display: grid; gap: 6px; align-content: start; text-align: left; cursor: pointer; padding: 14px 14px 12px;
+  border: 1px solid var(--line); background: color-mix(in srgb, var(--scene) 84%, var(--ink) 16%); color: var(--ink);
+  font: 400 12px/1.4 var(--mono); opacity: 0; transform: translateY(10px);
+  animation: rise .6s cubic-bezier(.2, .7, .2, 1) forwards; transition: transform .2s ease, border-color .2s, box-shadow .25s;
+}
+.tier:nth-child(2) { animation-delay: .08s; } .tier:nth-child(3) { animation-delay: .16s; }
+.tier:hover, .tier:focus-visible { transform: translateY(-3px); border-color: var(--ink); box-shadow: 0 10px 24px -14px rgba(0, 0, 0, .45); outline: none; }
+.tier:active { transform: translateY(0) scale(.98); }
+.tier b { font: 700 26px/1 var(--display); letter-spacing: .04em; text-transform: uppercase; }
+.tier i { font-style: normal; color: var(--muted); }
+.tier .size { font-size: 11px; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); }
+.tier.rec { border-color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink); }
+.tier.rec::after {
+  content: attr(data-rec); position: absolute; top: -9px; right: 10px; padding: 3px 7px 2px; background: var(--signal); color: #1C1E22;
+  font: 600 10px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase;
+}
+.tier .count { position: absolute; left: 0; bottom: 0; height: 2px; width: 0; background: var(--signal); }
+.tier.rec .count { animation: countdown var(--wait, 9s) linear forwards; }
+.tiers-note { display: none; font: 400 11.5px/1.5 var(--mono); color: var(--muted); max-width: 60ch; }
+#loader.picking .tiers-note { display: block; }
+@keyframes rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+@keyframes countdown { from { width: 0; } to { width: 100%; } }
+@media (max-width: 560px) { .tiers { grid-template-columns: 1fr; } .tier { grid-template-columns: auto 1fr; column-gap: 12px; } .tier b { grid-row: span 3; align-self: center; min-width: 2.4em; } }
+
+/* small motion everywhere: buttons press, cards stagger their details, the lightbox fades in */
+button { -webkit-tap-highlight-color: transparent; }
+.en { display: none; }
+html[lang="en"] .en { display: inline; }
+html[lang="en"] .de { display: none; }
+.lang-toggle {
+  position: fixed; z-index: 30; left: max(16px, calc(env(safe-area-inset-left, 0px) + 16px)); bottom: calc(env(safe-area-inset-bottom, 0px) + 16px);
+  border: 0; padding: 8px 10px 7px; background: var(--chrome); color: var(--chrome-ink); cursor: pointer;
+  font: 600 12px/1 var(--mono); letter-spacing: .08em; backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  transition: transform .18s ease, background-color .25s;
+}
+.lang-toggle b { color: var(--signal); font-weight: 600; }
+.lang-toggle:active { transform: scale(.95); }
+@media (max-width: 760px) { .lang-toggle { left: auto; right: max(12px, calc(env(safe-area-inset-right, 0px) + 12px)); bottom: auto; top: calc(env(safe-area-inset-top, 0px) + 64px); } }
+.rooms button, .ghost, .shot, .walk-toggle, .sprint-toggle, .lightbox button { transition: color .2s, background-color .25s, border-color .2s, transform .18s ease, box-shadow .25s; }
+.rooms button:active, .ghost:active, .shot:active, .walk-toggle:active, .sprint-toggle:active, .cta:active { transform: scale(.96); }
+.shot:hover, .ghost:hover { transform: translateY(-1px); }
+.card .eyebrow, .card h1, .card h2, .card .lede, .card .specs > div, .card .actions, .card .shot { transition: opacity .55s ease, transform .55s cubic-bezier(.2, .7, .2, 1); }
+.card:not(.on) .eyebrow, .card:not(.on) h1, .card:not(.on) h2, .card:not(.on) .lede, .card:not(.on) .specs > div, .card:not(.on) .actions, .card:not(.on) .shot { opacity: 0; transform: translateY(8px); }
+.card.on h1, .card.on h2 { transition-delay: .05s; } .card.on .lede { transition-delay: .1s; }
+.card.on .specs > div:nth-child(1) { transition-delay: .16s; } .card.on .specs > div:nth-child(2) { transition-delay: .2s; }
+.card.on .specs > div:nth-child(3) { transition-delay: .24s; } .card.on .specs > div:nth-child(4) { transition-delay: .28s; }
+.card.on .actions, .card.on .shot { transition-delay: .3s; }
+dialog.lightbox[open] { animation: lbIn .35s ease both; }
+dialog.lightbox[open] img { animation: rise .5s cubic-bezier(.2, .7, .2, 1) both; }
+@keyframes lbIn { from { opacity: 0; } to { opacity: 1; } }
+.walk-hint { transform: translate(-50%, 8px); transition: opacity .3s, visibility .3s, transform .4s cubic-bezier(.2, .7, .2, 1); }
+body.walking .walk-hint { transform: translate(-50%, 0); }
+.tier-switch { border: 0; background: transparent; color: var(--chrome-dim, rgba(241,240,236,.6)); font: 500 11px/1 var(--mono); letter-spacing: .06em; text-transform: uppercase; cursor: pointer; padding: 4px 0 0; transition: color .2s; }
+.tier-switch:hover { color: var(--signal); }
+
+dialog.lightbox { padding: 0; border: 0; background: #0d0e10; max-width: 100vw; max-height: 100vh; width: 100vw; height: 100vh; }
+dialog.lightbox::backdrop { background: rgba(0, 0, 0, .85); }
+.lightbox figure { margin: 0; width: 100%; height: 100%; display: grid; grid-template-rows: 1fr auto; }
+.lightbox .frame { overflow: auto; display: grid; place-items: center; min-height: 0; }
+.lightbox img { display: block; max-width: 100%; max-height: 100%; object-fit: contain; cursor: zoom-in; }
+.lightbox.zoom img { max-width: none; max-height: none; cursor: zoom-out; }
+.lightbox figcaption { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 16px; color: #F1F0EC; font: 400 12px/1.3 var(--mono); letter-spacing: .05em; text-transform: uppercase; }
+.lightbox figcaption span { color: rgba(241, 240, 236, .6); }
+.lightbox button { border: 1px solid rgba(241, 240, 236, .35); background: transparent; color: #F1F0EC; font: 500 12px/1 var(--mono); text-transform: uppercase; letter-spacing: .06em; padding: 9px 12px; cursor: pointer; }
+
+@media (max-width: 1100px), (max-height: 720px) { .plan { display: none; } }
+@media (max-width: 760px) {
+  .studio { display: none; }
+  .status { left: max(12px, calc(env(safe-area-inset-left, 0px) + 12px)); right: auto; width: auto; bottom: auto; top: calc(env(safe-area-inset-top, 0px) + 64px); padding: 6px; }
+  .status .status-row, .status .status-bar { display: none; }
+  .rooms {
+    left: max(12px, calc(env(safe-area-inset-left, 0px) + 12px));
+    right: max(12px, calc(env(safe-area-inset-right, 0px) + 12px));
+    top: calc(env(safe-area-inset-top, 0px) + 12px);
+    display: flex; overflow-x: auto; scrollbar-width: none; padding: 4px;
+  }
+  .rooms::-webkit-scrollbar { display: none; }
+  .rooms button { flex: 0 0 auto; padding: 8px 10px; font-size: 13px; gap: 6px; }
+  .rooms button .num { display: none; }
+  .card {
+    top: auto; left: max(12px, calc(env(safe-area-inset-left, 0px) + 12px));
+    right: max(12px, calc(env(safe-area-inset-right, 0px) + 12px));
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 12px);
+    width: auto; max-height: 50vh; transform: translateY(var(--shift)); padding: 16px 16px 14px; gap: 10px;
+  }
+  .card h1 { font-size: 46px; }
+  .card h2 { font-size: 34px; }
+  .lede { font-size: 14.5px; }
+  .specs { display: none; }
+  .cta { font-size: 17px; padding: 13px 22px 12px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .scroll-hint i { animation: none; }
+  .tier, .loader-brand, dialog.lightbox[open], dialog.lightbox[open] img { animation: none; opacity: 1; transform: none; }
+  .card .eyebrow, .card h1, .card h2, .card .lede, .card .specs > div, .card .actions, .card .shot { transition: none; }
+}
+</style>
+<div id="loader" role="status">
+  <div class="loader-inner">
+    <div class="loader-brand">Seofessionals 3D Demo <small>three.js</small></div>
+    <div class="loader-note" id="load-note">Das Haus wird geladen · 0 %</div>
+    <div class="loader-bar"><span id="load-bar"></span></div>
+    <div class="tiers" role="group" aria-label="Darstellungsqualität wählen">
+      <button type="button" class="tier" data-tier="sd"><b>SD</b><span><span class="de">Flüssig auf jedem Handy</span><span class="en">Smooth on any phone</span></span><i class="size"><span class="de">unter 1 MB · alles im Gerät erzeugt</span><span class="en">under 1 MB · everything generated on the device</span></i><span class="count"></span></button>
+      <button type="button" class="tier" data-tier="hd"><b>HD</b><span><span class="de">Scharf auf Tablet und Laptop</span><span class="en">Sharp on tablet and laptop</span></span><i class="size"><span class="de">unter 1 MB · Rasen in Halmen, weiche Schatten</span><span class="en">under 1 MB · blade-by-blade lawn, soft shadows</span></i><span class="count"></span></button>
+      <button type="button" class="tier" data-tier="max"><b>Max</b><span><span class="de">Volle Schärfe bis 4K</span><span class="en">Full sharpness up to 4K</span></span><i class="size"><span class="de">unter 1 MB · 2K-Materialien, Umgebungsverdeckung, starke Grafikkarte</span><span class="en">under 1 MB · 2K materials, ambient occlusion, strong graphics card</span></i><span class="count"></span></button>
+    </div>
+    <p class="tiers-note" id="tiers-note">Tippen Sie auf eine Stufe. Die empfohlene startet von selbst.</p>
+  </div>
+</div>
+
+<canvas id="scene" aria-label="Begehbares 3D-Modell des Linden-Hauses, innen und außen"></canvas>
+<div class="vignette" aria-hidden="true"></div>
+
+<div class="studio"><span class="studio-name">Seofessionals 3D Demo</span><span class="studio-sub"><span class="de">Begehbare Architektur · reines three.js</span><span class="en">Walkable architecture · pure three.js</span></span></div>
+<button type="button" class="lang-toggle" id="lang" aria-label="Sprache wechseln / switch language"><span class="de"><b>DE</b> · EN</span><span class="en">DE · <b>EN</b></span></button>
+
+<nav class="rooms" aria-label="Räume / rooms">
+  <button type="button" data-go="0"><span class="num">00</span><span class="de">Das Haus</span><span class="en">The house</span></button>
+  <button type="button" data-go="1"><span class="num">01</span><span class="de">Diele</span><span class="en">Hall</span></button>
+  <button type="button" data-go="2"><span class="num">02</span><span class="de">Wohnzimmer</span><span class="en">Living room</span></button>
+  <button type="button" data-go="3"><span class="num">03</span><span class="de">Küche</span><span class="en">Kitchen</span></button>
+  <button type="button" data-go="4"><span class="num">04</span><span class="de">Bibliothek</span><span class="en">Library</span></button>
+  <button type="button" data-go="5"><span class="num">05</span><span class="de">Garage</span><span class="en">Garage</span></button>
+  <button type="button" data-go="6"><span class="num">06</span><span class="de">Bad</span><span class="en">Bathroom</span></button>
+  <button type="button" data-go="7"><span class="num">07</span><span class="de">Schlafzimmer</span><span class="en">Bedroom</span></button>
+  <button type="button" data-go="8"><span class="num">08</span><span class="de">Garten</span><span class="en">Garden</span></button>
+  <button type="button" data-go="9"><span class="num">→</span><span class="de">Ihr Projekt</span><span class="en">Your project</span></button>
+</nav>
+
+<section class="card" data-i="0" data-view="exterior" aria-labelledby="t-hero">
+  <p class="eyebrow"><span class="de">Modernes Landhaus · 7 Räume · 112 m² · Pool</span><span class="en">Modern country house · 7 rooms · 112 m² · pool</span></p>
+  <h1 id="t-hero"><span class="de">Das Linden-Haus</span><span class="en">The Linden House</span></h1>
+  <p class="lede"><span class="de">Anthrazit-Fassade, Stehfalzdach und Zedernholz vor einem Alpenpanorama, komplett in three.js gebaut: Räume, Möbel, Materialien und Licht entstehen live im Browser, ohne eine einzige Bild- oder Modelldatei. Scrollen Sie durch alle Räume oder erkunden Sie das Haus frei, die Haustür öffnet sich, wenn Sie näherkommen.</span><span class="en">A charcoal facade, standing-seam roof and cedar against an alpine panorama, built entirely in three.js: rooms, furniture, materials and light are generated live in the browser, without a single image or model file. Scroll through every room or explore freely: the front door opens as you approach.</span></p>
+  <div class="actions">
+    <button type="button" class="cta" data-go="1"><span class="de">Eintreten</span><span class="en">Step inside</span></button>
+    <p class="scroll-hint"><i></i><span class="de">oder scrollen</span><span class="en">or scroll</span></p>
+  </div>
+</section>
+
+<section class="card" data-i="1" data-view="hall" aria-labelledby="t-hall">
+  <p class="eyebrow"><span class="de">Raum 01 von 07 · 10,4 m²</span><span class="en">Room 01 of 07 · 10.4 m²</span></p>
+  <h2 id="t-hall"><span class="de">Diele</span><span class="en">Hall</span></h2>
+  <p class="lede"><span class="de">Hinter der Eichen-Haustür eine helle Galerie-Diele: Einbauleuchten über vier gerahmten Drucken, eine Eichenbank mit Schal und Schuhen am Eingang und ein heller Wollläufer ins offene Wohnzimmer.</span><span class="en">Behind the oak front door, a bright gallery hall: recessed lights over four framed prints, an oak bench with a scarf and shoes by the entrance, and a light wool runner leading into the open living room.</span></p>
+  <dl class="specs">
+    <div><dt><span class="de">Länge</span><span class="en">Length</span></dt><dd><span class="de">7,4 m</span><span class="en">7.4 m</span></dd></div>
+    <div><dt><span class="de">Haustür</span><span class="en">Front door</span></dt><dd><span class="de">Eiche, raumhoher Griff</span><span class="en">Oak, full-height pull</span></dd></div>
+    <div><dt><span class="de">Licht</span><span class="en">Lighting</span></dt><dd><span class="de">5 Einbaustrahler</span><span class="en">5 recessed spots</span></dd></div>
+    <div><dt><span class="de">Kunst</span><span class="en">Art</span></dt><dd><span class="de">af Klint, Klee</span><span class="en">af Klint, Klee</span></dd></div>
+  </dl>
+</section>
+
+<section class="card" data-i="2" data-view="living" aria-labelledby="t-living">
+  <p class="eyebrow"><span class="de">Raum 02 von 07 · 26,7 m²</span><span class="en">Room 02 of 07 · 26.7 m²</span></p>
+  <h2 id="t-living"><span class="de">Wohnzimmer</span><span class="en">Living room</span></h2>
+  <p class="lede"><span class="de">Offener Wohnraum um einen langen, niedrigen Kamin in raumhohem Travertin. Leinensofa, zwei Loungesessel und ein Travertin-Tisch bilden die Sitzgruppe, dahinter der gedeckte Esstisch und die Küche.</span><span class="en">An open living room around a long, low fireplace in floor-to-ceiling travertine. A linen sofa, two lounge chairs and a travertine table form the seating group, with the laid dining table and the kitchen beyond.</span></p>
+  <dl class="specs">
+    <div><dt><span class="de">Decke</span><span class="en">Ceiling</span></dt><dd><span class="de">2,90 m, Einbaustrahler</span><span class="en">2.90 m, recessed spots</span></dd></div>
+    <div><dt><span class="de">Kamin</span><span class="en">Fireplace</span></dt><dd><span class="de">Travertin, 1,6 m Feuerband</span><span class="en">Travertine, 1.6 m flame</span></dd></div>
+    <div><dt><span class="de">Sitzplätze</span><span class="en">Seating</span></dt><dd><span class="de">Leinensofa, 2 Loungesessel</span><span class="en">Linen sofa, 2 lounge chairs</span></dd></div>
+    <div><dt><span class="de">Boden</span><span class="en">Floor</span></dt><dd><span class="de">Weißeiche-Dielen</span><span class="en">White oak boards</span></dd></div>
+  </dl>
+</section>
+
+<section class="card" data-i="3" data-view="kitchen" aria-labelledby="t-kitchen">
+  <p class="eyebrow"><span class="de">Raum 03 von 07 · 25,8 m²</span><span class="en">Room 03 of 07 · 25.8 m²</span></p>
+  <h2 id="t-kitchen"><span class="de">Küche &amp; Essen</span><span class="en">Kitchen &amp; dining</span></h2>
+  <p class="lede"><span class="de">Eine raumhohe Schrankwand aus grifflosem Eichenfurnier mit Edelstahl-Kühlschrank und zwei Backöfen, davor eine Insel aus Calacatta-Marmor mit Spüle unter drei schwarzen Linienleuchten.</span><span class="en">A floor-to-ceiling wall of handleless oak with a stainless fridge and two ovens, facing a Calacatta marble island with the sink under three black linear pendants.</span></p>
+  <dl class="specs">
+    <div><dt><span class="de">Fronten</span><span class="en">Fronts</span></dt><dd><span class="de">Eiche, grifflos</span><span class="en">Oak, handleless</span></dd></div>
+    <div><dt><span class="de">Insel</span><span class="en">Island</span></dt><dd><span class="de">Calacatta, Wasserfallkante</span><span class="en">Calacatta, waterfall edges</span></dd></div>
+    <div><dt><span class="de">Geräte</span><span class="en">Appliances</span></dt><dd><span class="de">2 Backöfen, Induktion</span><span class="en">2 ovens, induction</span></dd></div>
+    <div><dt><span class="de">Tisch</span><span class="en">Table</span></dt><dd><span class="de">Eiche, 6 Plätze</span><span class="en">Oak, seats 6</span></dd></div>
+  </dl>
+</section>
+
+<section class="card" data-i="4" data-view="study" aria-labelledby="t-study">
+  <p class="eyebrow"><span class="de">Raum 04 von 07 · 15,2 m²</span><span class="en">Room 04 of 07 · 15.2 m²</span></p>
+  <h2 id="t-study"><span class="de">Bibliothek</span><span class="en">Library</span></h2>
+  <p class="lede"><span class="de">Raumhohe Regale in Nussbaum voller Bücher, ein Chesterfield-Sessel aus Leder mit Teetisch, eine Fensterbank zum Lesen und ein Nussbaum-Schreibtisch mit Messinglampe. Eine Tür führt in die Werkstatt.</span><span class="en">Floor-to-ceiling walnut shelves full of books, a leather chesterfield with a tea table, a reading window seat and a walnut desk with a brass lamp. A door leads into the workshop.</span></p>
+  <dl class="specs">
+    <div><dt><span class="de">Regale</span><span class="en">Shelves</span></dt><dd><span class="de">18 m Bücher</span><span class="en">18 m of books</span></dd></div>
+    <div><dt><span class="de">Sessel</span><span class="en">Armchair</span></dt><dd><span class="de">Chesterfield, Leder</span><span class="en">Chesterfield, leather</span></dd></div>
+    <div><dt><span class="de">Schreibtisch</span><span class="en">Desk</span></dt><dd><span class="de">Nussbaum, 1,5 m</span><span class="en">Walnut, 1.5 m</span></dd></div>
+    <div><dt><span class="de">Boden</span><span class="en">Floor</span></dt><dd><span class="de">Eiche, dunkel geölt</span><span class="en">Dark oiled oak</span></dd></div>
+  </dl>
+</section>
+
+<section class="card" data-i="5" data-view="garage" aria-labelledby="t-garage">
+  <p class="eyebrow"><span class="de">Raum 05 von 07 · 24 m²</span><span class="en">Room 05 of 07 · 24 m²</span></p>
+  <h2 id="t-garage"><span class="de">Werkstatt-Garage</span><span class="en">Workshop garage</span></h2>
+  <p class="lede"><span class="de">Eine aufgeräumte Werkstatt hinter der Bibliothek: eine Lochwand voller Werkzeug, eine Werkbank aus Eiche, Regale mit Kisten und LED-Lichtbänder über dem versiegelten Betonboden.</span><span class="en">A tidy workshop behind the library: a pegboard full of tools, an oak workbench, shelving with crates and LED light strips over a sealed concrete floor.</span></p>
+  <dl class="specs">
+    <div><dt><span class="de">Werkbank</span><span class="en">Workbench</span></dt><dd><span class="de">Eiche, 2,2 m</span><span class="en">Oak, 2.2 m</span></dd></div>
+    <div><dt><span class="de">Wand</span><span class="en">Wall</span></dt><dd><span class="de">Lochwand, 3,8 m</span><span class="en">Pegboard, 3.8 m</span></dd></div>
+    <div><dt><span class="de">Boden</span><span class="en">Floor</span></dt><dd><span class="de">Beton, versiegelt</span><span class="en">Sealed concrete</span></dd></div>
+    <div><dt><span class="de">Licht</span><span class="en">Lighting</span></dt><dd><span class="de">3 LED-Lichtbänder</span><span class="en">3 LED strips</span></dd></div>
+  </dl>
+</section>
+
+<section class="card" data-i="6" data-view="bath" aria-labelledby="t-bath">
+  <p class="eyebrow"><span class="de">Raum 06 von 07 · 12,9 m²</span><span class="en">Room 06 of 07 · 12.9 m²</span></p>
+  <h2 id="t-bath"><span class="de">Bad</span><span class="en">Bathroom</span></h2>
+  <p class="lede"><span class="de">Wände aus raumhohem Marmor, eine freistehende Wanne vor einem großen Fenster, eine bodengleiche Dusche hinter rahmenlosem Glas und ein schwebender Eichen-Waschtisch mit hinterleuchtetem Spiegel.</span><span class="en">Floor-to-ceiling marble walls, a freestanding tub at a big window, a walk-in shower behind frameless glass and a floating oak double vanity with a backlit mirror.</span></p>
+  <dl class="specs">
+    <div><dt><span class="de">Wände</span><span class="en">Walls</span></dt><dd><span class="de">Marmor, raumhoch</span><span class="en">Marble, full height</span></dd></div>
+    <div><dt><span class="de">Boden</span><span class="en">Floor</span></dt><dd><span class="de">Großformat-Feinsteinzeug</span><span class="en">Large-format porcelain</span></dd></div>
+    <div><dt><span class="de">Waschtisch</span><span class="en">Vanity</span></dt><dd><span class="de">Eiche, Marmor</span><span class="en">Oak, marble</span></dd></div>
+    <div><dt><span class="de">Armaturen</span><span class="en">Fittings</span></dt><dd><span class="de">Schwarz matt</span><span class="en">Matt black</span></dd></div>
+  </dl>
+</section>
+
+<section class="card" data-i="7" data-view="bed" aria-labelledby="t-bed">
+  <p class="eyebrow"><span class="de">Raum 07 von 07 · 20,8 m²</span><span class="en">Room 07 of 07 · 20.8 m²</span></p>
+  <h2 id="t-bed"><span class="de">Schlafzimmer</span><span class="en">Bedroom</span></h2>
+  <p class="lede"><span class="de">Ein Nussbaumbett mit hohem Kopfteil vor einer Wand in warmem Kalkputz, weiche Leinenbettwäsche mit salbeigrünen Kissen, eine Samtbank am Fußende und ein Lesesessel am Gartenfenster.</span><span class="en">A walnut bed with a tall headboard against a warm limewash wall, soft linen bedding with sage cushions, a velvet bench at the foot and a reading chair by the garden window.</span></p>
+  <dl class="specs">
+    <div><dt><span class="de">Bett</span><span class="en">Bed</span></dt><dd><span class="de">180 × 200 cm</span><span class="en">180 × 200 cm</span></dd></div>
+    <div><dt><span class="de">Akzentwand</span><span class="en">Feature wall</span></dt><dd><span class="de">Kalkputz</span><span class="en">Limewash</span></dd></div>
+    <div><dt><span class="de">Schrank</span><span class="en">Wardrobe</span></dt><dd><span class="de">2,9 m, Eiche</span><span class="en">2.9 m, oak</span></dd></div>
+    <div><dt><span class="de">Bettwäsche</span><span class="en">Bedding</span></dt><dd><span class="de">Leinen, Strick</span><span class="en">Linen, knit</span></dd></div>
+  </dl>
+</section>
+
+<section class="card" data-i="8" data-view="rear" aria-labelledby="t-garden">
+  <p class="eyebrow"><span class="de">Außen · Terrasse · Pool 9 × 4 m</span><span class="en">Outside · terrace · pool 9 × 4 m</span></p>
+  <h2 id="t-garden"><span class="de">Garten</span><span class="en">Garden</span></h2>
+  <p class="lede"><span class="de">Die Terrassentür öffnet sich auf eine Steinterrasse mit Feuertisch zwischen zwei Zedernholz-Sofas. Dahinter ein Sonnendeck mit Liegen am Pool, eine hohe Hecke und die Berge am Horizont.</span><span class="en">The garden door opens onto a stone terrace with a fire table between two cedar sofas. Beyond it a sun deck with loungers by the pool, a tall hedge and the mountains on the horizon.</span></p>
+</section>
+
+<section class="card" data-i="9" data-view="rear" aria-labelledby="t-outro">
+  <p class="eyebrow"><span class="de">Ihr Projekt</span><span class="en">Your project</span></p>
+  <h2 id="t-outro"><span class="de">Begehen Sie Ihr Haus, bevor es gebaut ist</span><span class="en">Walk through your house before it is built</span></h2>
+  <p class="lede"><span class="de">Diese Demo von Seofessionals zeigt, was mit Ihrem Projekt möglich ist: als begehbare 3D-Welt, die vollständig im Browser entsteht: federleicht geladen, live beleuchtet, am Handy wie am Rechner.</span><span class="en">This Seofessionals demo shows what is possible for your project: as a walkable 3D world generated entirely in the browser: featherweight to load, lit live, on phone or desktop.</span></p>
+  <div class="actions">
+    <button type="button" class="cta" id="book"><span class="de">Projekt anfragen</span><span class="en">Request a project</span></button>
+    <button type="button" class="ghost" data-go="0"><span class="de">Noch einmal durchgehen</span><span class="en">Take the tour again</span></button>
+    <button type="button" class="tier-switch" id="tier-switch"><span class="de">Qualität ändern</span><span class="en">Change quality</span></button>
+  </div>
+  <p class="contact" id="contact" hidden><span class="de">Sprechen Sie Seofessionals an. Wir bauen Ihr Haus, Ihre Wohnung oder Ihr Ladenlokal als begehbare 3D-Welt für Ihre Website.</span><span class="en">Talk to Seofessionals. We build your house, apartment or shop as a walkable 3D world for your website.</span></p>
+  <p class="credits"><span class="de">Echtzeit mit three.js · alle Formen, Materialien, Bäume, Berge und Kunstwerke werden beim Laden prozedural erzeugt</span><span class="en">Real time with three.js · every shape, material, tree, mountain and artwork is generated procedurally at load</span></p>
+</section>
+
+<figure class="plan" aria-label="Grundriss">
+  <svg viewBox="-46 -26 148 144" role="group" aria-label="Grundriss, Raum auswählen">
+    <rect class="rm" data-go="5" data-room="5" x="-42" y="-22" width="42" height="62" tabindex="0" role="button" aria-label="Garage"></rect>
+    <text data-room="5" x="-38" y="-14">Garage</text>
+    <rect class="rm" data-go="4" data-room="4" x="0" y="0" width="38" height="40" tabindex="0" role="button" aria-label="Bibliothek"></rect>
+    <rect class="rm" data-go="1" data-room="1" x="38" y="0" width="14" height="74" tabindex="0" role="button" aria-label="Diele"></rect>
+    <rect class="rm" data-go="2" data-room="2" x="52" y="0" width="46" height="58" tabindex="0" role="button" aria-label="Wohnzimmer"></rect>
+    <rect class="rm" data-go="6" data-room="6" x="0" y="40" width="38" height="34" tabindex="0" role="button" aria-label="Bad"></rect>
+    <rect class="rm" data-go="3" data-room="3" x="52" y="58" width="46" height="56" tabindex="0" role="button" aria-label="Küche"></rect>
+    <rect class="rm" data-go="7" data-room="7" x="0" y="74" width="52" height="40" tabindex="0" role="button" aria-label="Schlafzimmer"></rect>
+    <text data-room="4" x="3" y="8">Bibliothek</text>
+    <text data-room="1" x="40" y="8">Diele</text>
+    <text data-room="2" x="55" y="8">Wohnen</text>
+    <text data-room="6" x="3" y="48">Bad</text>
+    <text data-room="3" x="55" y="66">Küche</text>
+    <text data-room="7" x="3" y="82">Schlafen</text>
+    <g class="cam" id="cam"><path d="M0 0 L16 -8 A18 18 0 0 1 16 8 Z"></path><circle r="2.6"></circle></g>
+  </svg>
+  <figcaption><span>Grundriss · 1:100</span><span>112 m²</span></figcaption>
+</figure>
+
+<div class="status">
+  <div class="status-row" aria-live="polite"><span id="status-text">Das Haus</span><span id="status-step">Zum Gehen scrollen</span></div>
+  <div class="status-bar"><span id="status-fill"></span></div>
+  <button type="button" class="walk-toggle" id="walk" aria-pressed="false">Frei erkunden</button>
+</div>
+<p class="walk-hint" id="walk-hint"><span class="de"><b>Ziehen</b> zum Umsehen · <b>W A S D</b> oder Pfeiltasten zum Gehen · <b>Shift</b> zum Sprinten · <b>E</b> oder Klick öffnet die Haustür · am Handy <b>gedrückt halten</b> zum Vorwärtsgehen</span><span class="en"><b>Drag</b> to look around · <b>W A S D</b> or arrow keys to walk · <b>Shift</b> to sprint · <b>E</b> or click opens the front door · on phones <b>press and hold</b> to walk forward</span></p>
+<button type="button" class="sprint-toggle" id="sprint" aria-pressed="false">Sprinten</button>
+
+<div id="track" aria-hidden="true"></div>
+
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/"
+} }
+</script>
+<script type="module" src="js/app.js"></script>
+</html>
