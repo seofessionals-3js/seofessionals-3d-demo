@@ -2,7 +2,7 @@
 <html lang="de">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Linden-Haus three.js</title>
+<title>Seofessionals Showcase: three.js</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
@@ -289,10 +289,14 @@ dialog.lightbox::backdrop { background: rgba(0, 0, 0, .85); }
   .tier, .loader-brand, dialog.lightbox[open], dialog.lightbox[open] img { animation: none; opacity: 1; transform: none; }
   .card .eyebrow, .card h1, .card h2, .card .lede, .card .specs > div, .card .actions, .card .shot { transition: none; }
 }
+a.cta, a.ghost { display: inline-flex; align-items: center; text-decoration: none; }
+.card[data-i="9"] .ghost { font-size: 15px; padding: 11px 14px 10px; }
+.card[data-i="9"] .actions .cta { flex: 1 1 100%; justify-content: center; }
+@media (max-width: 600px) { .card[data-i="9"] .credits { display: none; } }
 </style>
 <div id="loader" role="status">
   <div class="loader-inner">
-    <div class="loader-brand">Seofessionals 3D Demo <small>three.js</small></div>
+    <div class="loader-brand">Seofessionals Showcase: three.js</div>
     <div class="loader-note" id="load-note">Das Haus wird geladen · 0 %</div>
     <div class="loader-bar"><span id="load-bar"></span></div>
     <div class="tiers" role="group" aria-label="Darstellungsqualität wählen">
@@ -307,7 +311,7 @@ dialog.lightbox::backdrop { background: rgba(0, 0, 0, .85); }
 <canvas id="scene" aria-label="Begehbares 3D-Modell des Linden-Hauses, innen und außen"></canvas>
 <div class="vignette" aria-hidden="true"></div>
 
-<div class="studio"><span class="studio-name">Seofessionals 3D Demo</span><span class="studio-sub"><span class="de">Begehbare Architektur · reines three.js</span><span class="en">Walkable architecture · pure three.js</span></span></div>
+<div class="studio"><span class="studio-name">Seofessionals Showcase</span><span class="studio-sub"><span class="de">three.js · Linden-Haus</span><span class="en">three.js · Linden-Haus</span></span></div>
 <button type="button" class="lang-toggle" id="lang" aria-label="Sprache wechseln / switch language"><span class="de"><b>DE</b> · EN</span><span class="en">DE · <b>EN</b></span></button>
 
 <nav class="rooms" aria-label="Räume / rooms">
@@ -324,9 +328,9 @@ dialog.lightbox::backdrop { background: rgba(0, 0, 0, .85); }
 </nav>
 
 <section class="card" data-i="0" data-view="exterior" aria-labelledby="t-hero">
-  <p class="eyebrow"><span class="de">Modernes Landhaus · 7 Räume · 112 m² · Pool</span><span class="en">Modern country house · 7 rooms · 112 m² · pool</span></p>
-  <h1 id="t-hero"><span class="de">Das Linden-Haus</span><span class="en">The Linden House</span></h1>
-  <p class="lede"><span class="de">Anthrazit-Fassade, Stehfalzdach und Zedernholz vor einem Alpenpanorama, komplett in three.js gebaut: Räume, Möbel, Materialien und Licht entstehen live im Browser, ohne eine einzige Bild- oder Modelldatei. Scrollen Sie durch alle Räume oder erkunden Sie das Haus frei, die Haustür öffnet sich, wenn Sie näherkommen.</span><span class="en">A charcoal facade, standing-seam roof and cedar against an alpine panorama, built entirely in three.js: rooms, furniture, materials and light are generated live in the browser, without a single image or model file. Scroll through every room or explore freely: the front door opens as you approach.</span></p>
+  <p class="eyebrow"><span class="de">Seofessionals Showcase · three.js</span><span class="en">Seofessionals Showcase · three.js</span></p>
+  <h1 id="t-hero"><span class="de">Linden-Haus</span><span class="en">Linden-Haus</span></h1>
+  <p class="lede"><span class="de">Dasselbe Haus wie im 3D-Render, aber ohne ein einziges Foto und ohne Modelldatei. Räume, Möbel, Materialien, Bäume, Berge und Licht entstehen in wenigen Sekunden auf Ihrem Gerät, der ganze Download liegt unter 1 MB. Jede Station des Rundgangs zeigt, wie es gemacht ist.</span><span class="en">The same house as in the 3D render, but without a single photo or model file. Rooms, furniture, materials, trees, mountains and light are created on your device within seconds, and the whole download stays under 1 MB. Every stop on the tour shows how it is done.</span></p>
   <div class="actions">
     <button type="button" class="cta" data-go="1"><span class="de">Eintreten</span><span class="en">Step inside</span></button>
     <p class="scroll-hint"><i></i><span class="de">oder scrollen</span><span class="en">or scroll</span></p>
@@ -334,102 +338,109 @@ dialog.lightbox::backdrop { background: rgba(0, 0, 0, .85); }
 </section>
 
 <section class="card" data-i="1" data-view="hall" aria-labelledby="t-hall">
-  <p class="eyebrow"><span class="de">Raum 01 von 07 · 10,4 m²</span><span class="en">Room 01 of 07 · 10.4 m²</span></p>
-  <h2 id="t-hall"><span class="de">Diele</span><span class="en">Hall</span></h2>
-  <p class="lede"><span class="de">Hinter der Eichen-Haustür eine helle Galerie-Diele: Einbauleuchten über vier gerahmten Drucken, eine Eichenbank mit Schal und Schuhen am Eingang und ein heller Wollläufer ins offene Wohnzimmer.</span><span class="en">Behind the oak front door, a bright gallery hall: recessed lights over four framed prints, an oak bench with a scarf and shoes by the entrance, and a light wool runner leading into the open living room.</span></p>
+  <p class="eyebrow"><span class="de">Diele · Materialien</span><span class="en">Hall · Materials</span></p>
+  <h2 id="t-hall"><span class="de">Holz aus Formeln</span><span class="en">Wood from formulas</span></h2>
+  <p class="lede"><span class="de">Hier gibt es keine Fotos. Dielen, Stuckputz, Marmor und Naturstein sind Rezepte, die der Grafikchip beim Laden in Bilder verwandelt, mit Farbe, Relief und Glanz. Die Auflösung richtet sich nach dem Gerät: von 256 Pixeln am Handy bis 2048 an starken Rechnern.</span><span class="en">There are no photos here. Floorboards, stucco, marble and fieldstone are recipes that the graphics chip turns into images while loading, with colour, relief and gloss. The resolution follows the device: from 256 pixels on a phone to 2048 on a strong computer.</span></p>
   <dl class="specs">
-    <div><dt><span class="de">Länge</span><span class="en">Length</span></dt><dd><span class="de">7,4 m</span><span class="en">7.4 m</span></dd></div>
-    <div><dt><span class="de">Haustür</span><span class="en">Front door</span></dt><dd><span class="de">Eiche, raumhoher Griff</span><span class="en">Oak, full-height pull</span></dd></div>
-    <div><dt><span class="de">Licht</span><span class="en">Lighting</span></dt><dd><span class="de">5 Einbaustrahler</span><span class="en">5 recessed spots</span></dd></div>
-    <div><dt><span class="de">Kunst</span><span class="en">Art</span></dt><dd><span class="de">af Klint, Klee</span><span class="en">af Klint, Klee</span></dd></div>
+    <div><dt><span class="de">Materialrezepte</span><span class="en">Material recipes</span></dt><dd><span class="de">27</span><span class="en">27</span></dd></div>
+    <div><dt><span class="de">Bilddateien</span><span class="en">Image files</span></dt><dd><span class="de">keine</span><span class="en">none</span></dd></div>
+    <div><dt><span class="de">Auflösung</span><span class="en">Resolution</span></dt><dd><span class="de">256 bis 2048 px</span><span class="en">256 to 2048 px</span></dd></div>
+    <div><dt><span class="de">Erzeugt</span><span class="en">Generated</span></dt><dd><span class="de">beim Laden, auf der GPU</span><span class="en">while loading, on the GPU</span></dd></div>
   </dl>
 </section>
 
 <section class="card" data-i="2" data-view="living" aria-labelledby="t-living">
-  <p class="eyebrow"><span class="de">Raum 02 von 07 · 26,7 m²</span><span class="en">Room 02 of 07 · 26.7 m²</span></p>
-  <h2 id="t-living"><span class="de">Wohnzimmer</span><span class="en">Living room</span></h2>
-  <p class="lede"><span class="de">Offener Wohnraum um einen langen, niedrigen Kamin in raumhohem Travertin. Leinensofa, zwei Loungesessel und ein Travertin-Tisch bilden die Sitzgruppe, dahinter der gedeckte Esstisch und die Küche.</span><span class="en">An open living room around a long, low fireplace in floor-to-ceiling travertine. A linen sofa, two lounge chairs and a travertine table form the seating group, with the laid dining table and the kitchen beyond.</span></p>
+  <p class="eyebrow"><span class="de">Wohnzimmer · Licht</span><span class="en">Living room · Light</span></p>
+  <h2 id="t-living"><span class="de">Licht in Echtzeit</span><span class="en">Light in real time</span></h2>
+  <p class="lede"><span class="de">Die Sonne wirft echte, weiche Schatten durch die Fenster. Beim Laden fotografiert eine 360°-Kamera jeden Raum zweimal, so fällt Licht von Wänden und Boden zurück in den Raum. Die Lampen in Ihrer Nähe leuchten live: zwölf Lichter wandern mit Ihnen von Raum zu Raum.</span><span class="en">The sun casts real, soft shadows through the windows. While loading, a 360° camera photographs every room twice, so light bounces off walls and floor back into the room. The lamps near you shine live: twelve lights travel with you from room to room.</span></p>
   <dl class="specs">
-    <div><dt><span class="de">Decke</span><span class="en">Ceiling</span></dt><dd><span class="de">2,90 m, Einbaustrahler</span><span class="en">2.90 m, recessed spots</span></dd></div>
-    <div><dt><span class="de">Kamin</span><span class="en">Fireplace</span></dt><dd><span class="de">Travertin, 1,6 m Feuerband</span><span class="en">Travertine, 1.6 m flame</span></dd></div>
-    <div><dt><span class="de">Sitzplätze</span><span class="en">Seating</span></dt><dd><span class="de">Leinensofa, 2 Loungesessel</span><span class="en">Linen sofa, 2 lounge chairs</span></dd></div>
-    <div><dt><span class="de">Boden</span><span class="en">Floor</span></dt><dd><span class="de">Weißeiche-Dielen</span><span class="en">White oak boards</span></dd></div>
+    <div><dt><span class="de">Sonne</span><span class="en">Sun</span></dt><dd><span class="de">Schattenkarte bis 4096 px</span><span class="en">Shadow map up to 4096 px</span></dd></div>
+    <div><dt><span class="de">Lichtfang</span><span class="en">Light capture</span></dt><dd><span class="de">7 Räume × 2 Durchgänge</span><span class="en">7 rooms × 2 passes</span></dd></div>
+    <div><dt><span class="de">Lampen</span><span class="en">Lamps</span></dt><dd><span class="de">12 live aus 42</span><span class="en">12 live out of 42</span></dd></div>
+    <div><dt><span class="de">Raumwechsel</span><span class="en">Room change</span></dt><dd><span class="de">weich überblendet</span><span class="en">smoothly cross-faded</span></dd></div>
   </dl>
 </section>
 
 <section class="card" data-i="3" data-view="kitchen" aria-labelledby="t-kitchen">
-  <p class="eyebrow"><span class="de">Raum 03 von 07 · 25,8 m²</span><span class="en">Room 03 of 07 · 25.8 m²</span></p>
-  <h2 id="t-kitchen"><span class="de">Küche &amp; Essen</span><span class="en">Kitchen &amp; dining</span></h2>
-  <p class="lede"><span class="de">Eine raumhohe Schrankwand aus grifflosem Eichenfurnier mit Edelstahl-Kühlschrank und zwei Backöfen, davor eine Insel aus Calacatta-Marmor mit Spüle unter drei schwarzen Linienleuchten.</span><span class="en">A floor-to-ceiling wall of handleless oak with a stainless fridge and two ovens, facing a Calacatta marble island with the sink under three black linear pendants.</span></p>
+  <p class="eyebrow"><span class="de">Küche · Geometrie</span><span class="en">Kitchen · Geometry</span></p>
+  <h2 id="t-kitchen"><span class="de">Möbel aus Code</span><span class="en">Furniture from code</span></h2>
+  <p class="lede"><span class="de">Jedes Möbelstück ist eine Bauanleitung: abgerundete Quader für Fronten, Drehkörper für Tassen und Vasen, gepolsterte Kissen mit Falten. Über 1.800 Teile werden beim Laden zu gut 200 Paketen verschmolzen, damit der Grafikchip schnell bleibt.</span><span class="en">Every piece of furniture is a building instruction: rounded boxes for fronts, turned shapes for cups and vases, padded cushions with creases. Over 1,800 parts are merged into about 200 batches while loading, so the graphics chip stays fast.</span></p>
   <dl class="specs">
-    <div><dt><span class="de">Fronten</span><span class="en">Fronts</span></dt><dd><span class="de">Eiche, grifflos</span><span class="en">Oak, handleless</span></dd></div>
-    <div><dt><span class="de">Insel</span><span class="en">Island</span></dt><dd><span class="de">Calacatta, Wasserfallkante</span><span class="en">Calacatta, waterfall edges</span></dd></div>
-    <div><dt><span class="de">Geräte</span><span class="en">Appliances</span></dt><dd><span class="de">2 Backöfen, Induktion</span><span class="en">2 ovens, induction</span></dd></div>
-    <div><dt><span class="de">Tisch</span><span class="en">Table</span></dt><dd><span class="de">Eiche, 6 Plätze</span><span class="en">Oak, seats 6</span></dd></div>
+    <div><dt><span class="de">Bauteile</span><span class="en">Parts</span></dt><dd><span class="de">1.841</span><span class="en">1,841</span></dd></div>
+    <div><dt><span class="de">Pakete</span><span class="en">Batches</span></dt><dd><span class="de">216</span><span class="en">216</span></dd></div>
+    <div><dt><span class="de">Maße</span><span class="en">Dimensions</span></dt><dd><span class="de">wie das Blender-Modell</span><span class="en">same as the Blender model</span></dd></div>
+    <div><dt><span class="de">Modelldateien</span><span class="en">Model files</span></dt><dd><span class="de">keine</span><span class="en">none</span></dd></div>
   </dl>
 </section>
 
 <section class="card" data-i="4" data-view="study" aria-labelledby="t-study">
-  <p class="eyebrow"><span class="de">Raum 04 von 07 · 15,2 m²</span><span class="en">Room 04 of 07 · 15.2 m²</span></p>
-  <h2 id="t-study"><span class="de">Bibliothek</span><span class="en">Library</span></h2>
-  <p class="lede"><span class="de">Raumhohe Regale in Nussbaum voller Bücher, ein Chesterfield-Sessel aus Leder mit Teetisch, eine Fensterbank zum Lesen und ein Nussbaum-Schreibtisch mit Messinglampe. Eine Tür führt in die Werkstatt.</span><span class="en">Floor-to-ceiling walnut shelves full of books, a leather chesterfield with a tea table, a reading window seat and a walnut desk with a brass lamp. A door leads into the workshop.</span></p>
+  <p class="eyebrow"><span class="de">Bibliothek · Baukasten</span><span class="en">Library · Toolkit</span></p>
+  <h2 id="t-study"><span class="de">Ändern in Minuten</span><span class="en">Change in minutes</span></h2>
+  <p class="lede"><span class="de">Das Haus ist mit denselben Maßen beschrieben wie das Blender-Modell, Zeile für Zeile, bis zu den 590 Büchern im Regal. Ein Regal verschieben, einen Boden tauschen oder einen Raum anbauen heißt: eine Zeile Code ändern, statt neu zu rendern und neu zu backen.</span><span class="en">The house is described with the same dimensions as the Blender model, line by line, down to the 590 books on the shelves. Moving a shelf, swapping a floor or adding a room means changing a line of code instead of rendering and baking again.</span></p>
   <dl class="specs">
-    <div><dt><span class="de">Regale</span><span class="en">Shelves</span></dt><dd><span class="de">18 m Bücher</span><span class="en">18 m of books</span></dd></div>
-    <div><dt><span class="de">Sessel</span><span class="en">Armchair</span></dt><dd><span class="de">Chesterfield, Leder</span><span class="en">Chesterfield, leather</span></dd></div>
-    <div><dt><span class="de">Schreibtisch</span><span class="en">Desk</span></dt><dd><span class="de">Nussbaum, 1,5 m</span><span class="en">Walnut, 1.5 m</span></dd></div>
-    <div><dt><span class="de">Boden</span><span class="en">Floor</span></dt><dd><span class="de">Eiche, dunkel geölt</span><span class="en">Dark oiled oak</span></dd></div>
+    <div><dt><span class="de">Einheit</span><span class="en">Unit</span></dt><dd><span class="de">Meter, wie in Blender</span><span class="en">metres, as in Blender</span></dd></div>
+    <div><dt><span class="de">Bücher</span><span class="en">Books</span></dt><dd><span class="de">590, zufällig gestellt</span><span class="en">590, placed at random</span></dd></div>
+    <div><dt><span class="de">Änderung</span><span class="en">Change</span></dt><dd><span class="de">eine Zeile Code</span><span class="en">one line of code</span></dd></div>
+    <div><dt><span class="de">Neu backen</span><span class="en">Rebake</span></dt><dd><span class="de">nie nötig</span><span class="en">never needed</span></dd></div>
   </dl>
 </section>
 
 <section class="card" data-i="5" data-view="garage" aria-labelledby="t-garage">
-  <p class="eyebrow"><span class="de">Raum 05 von 07 · 24 m²</span><span class="en">Room 05 of 07 · 24 m²</span></p>
-  <h2 id="t-garage"><span class="de">Werkstatt-Garage</span><span class="en">Workshop garage</span></h2>
-  <p class="lede"><span class="de">Eine aufgeräumte Werkstatt hinter der Bibliothek: eine Lochwand voller Werkzeug, eine Werkbank aus Eiche, Regale mit Kisten und LED-Lichtbänder über dem versiegelten Betonboden.</span><span class="en">A tidy workshop behind the library: a pegboard full of tools, an oak workbench, shelving with crates and LED light strips over a sealed concrete floor.</span></p>
+  <p class="eyebrow"><span class="de">Werkstatt · Leistung</span><span class="en">Workshop · Performance</span></p>
+  <h2 id="t-garage"><span class="de">Leicht auf jedem Gerät</span><span class="en">Light on every device</span></h2>
+  <p class="lede"><span class="de">SD, HD und Max laden dieselben paar Kilobyte. Sie entscheiden nur, wie fein die Materialien berechnet werden, wie dicht der Rasen wächst und ob Umgebungsverdeckung die Ecken abdunkelt. So läuft das Haus am Handy flüssig und am Rechner in voller Pracht.</span><span class="en">SD, HD and Max load the same few kilobytes. They only decide how finely the materials are computed, how densely the lawn grows and whether ambient occlusion darkens the corners. So the house runs smoothly on a phone and in full splendour on a desktop.</span></p>
   <dl class="specs">
-    <div><dt><span class="de">Werkbank</span><span class="en">Workbench</span></dt><dd><span class="de">Eiche, 2,2 m</span><span class="en">Oak, 2.2 m</span></dd></div>
-    <div><dt><span class="de">Wand</span><span class="en">Wall</span></dt><dd><span class="de">Lochwand, 3,8 m</span><span class="en">Pegboard, 3.8 m</span></dd></div>
-    <div><dt><span class="de">Boden</span><span class="en">Floor</span></dt><dd><span class="de">Beton, versiegelt</span><span class="en">Sealed concrete</span></dd></div>
-    <div><dt><span class="de">Licht</span><span class="en">Lighting</span></dt><dd><span class="de">3 LED-Lichtbänder</span><span class="en">3 LED strips</span></dd></div>
+    <div><dt><span class="de">Download</span><span class="en">Download</span></dt><dd><span class="de">unter 1 MB, jede Stufe</span><span class="en">under 1 MB, every tier</span></dd></div>
+    <div><dt><span class="de">Grashalme</span><span class="en">Grass blades</span></dt><dd><span class="de">0 / 110.000 / 230.000</span><span class="en">0 / 110,000 / 230,000</span></dd></div>
+    <div><dt><span class="de">Aufbau</span><span class="en">Build</span></dt><dd><span class="de">ca. 3 s am Rechner</span><span class="en">about 3 s on a desktop</span></dd></div>
+    <div><dt><span class="de">Ecken</span><span class="en">Corners</span></dt><dd><span class="de">Umgebungsverdeckung ab HD</span><span class="en">Ambient occlusion from HD</span></dd></div>
   </dl>
 </section>
 
 <section class="card" data-i="6" data-view="bath" aria-labelledby="t-bath">
-  <p class="eyebrow"><span class="de">Raum 06 von 07 · 12,9 m²</span><span class="en">Room 06 of 07 · 12.9 m²</span></p>
-  <h2 id="t-bath"><span class="de">Bad</span><span class="en">Bathroom</span></h2>
-  <p class="lede"><span class="de">Wände aus raumhohem Marmor, eine freistehende Wanne vor einem großen Fenster, eine bodengleiche Dusche hinter rahmenlosem Glas und ein schwebender Eichen-Waschtisch mit hinterleuchtetem Spiegel.</span><span class="en">Floor-to-ceiling marble walls, a freestanding tub at a big window, a walk-in shower behind frameless glass and a floating oak double vanity with a backlit mirror.</span></p>
+  <p class="eyebrow"><span class="de">Bad · Oberflächen</span><span class="en">Bathroom · Surfaces</span></p>
+  <h2 id="t-bath"><span class="de">Glas, Marmor, Spiegel</span><span class="en">Glass, marble, mirror</span></h2>
+  <p class="lede"><span class="de">Die Marmoradern sind gewundene Bänder aus Rauschen, nicht fotografiert. Glas spiegelt den Himmel und bleibt trotzdem klar, der Spiegel zeigt den Raum. Draußen bewegt sich das Poolwasser, und auf dem Beckenboden tanzen Lichtreflexe, alles direkt im Shader berechnet.</span><span class="en">The marble veins are winding bands of noise, not photographs. Glass reflects the sky and still stays clear, the mirror shows the room. Outside, the pool water moves and light patterns dance on the pool floor, all computed directly in the shader.</span></p>
   <dl class="specs">
-    <div><dt><span class="de">Wände</span><span class="en">Walls</span></dt><dd><span class="de">Marmor, raumhoch</span><span class="en">Marble, full height</span></dd></div>
-    <div><dt><span class="de">Boden</span><span class="en">Floor</span></dt><dd><span class="de">Großformat-Feinsteinzeug</span><span class="en">Large-format porcelain</span></dd></div>
-    <div><dt><span class="de">Waschtisch</span><span class="en">Vanity</span></dt><dd><span class="de">Eiche, Marmor</span><span class="en">Oak, marble</span></dd></div>
-    <div><dt><span class="de">Armaturen</span><span class="en">Fittings</span></dt><dd><span class="de">Schwarz matt</span><span class="en">Matt black</span></dd></div>
+    <div><dt><span class="de">Marmor</span><span class="en">Marble</span></dt><dd><span class="de">3 Aderschichten</span><span class="en">3 layers of veins</span></dd></div>
+    <div><dt><span class="de">Glas</span><span class="en">Glass</span></dt><dd><span class="de">Spiegelung und Durchsicht</span><span class="en">reflection and see-through</span></dd></div>
+    <div><dt><span class="de">Pool</span><span class="en">Pool</span></dt><dd><span class="de">Wellen und Kaustiken live</span><span class="en">live waves and caustics</span></dd></div>
+    <div><dt><span class="de">Fotos</span><span class="en">Photos</span></dt><dd><span class="de">keine</span><span class="en">none</span></dd></div>
   </dl>
 </section>
 
 <section class="card" data-i="7" data-view="bed" aria-labelledby="t-bed">
-  <p class="eyebrow"><span class="de">Raum 07 von 07 · 20,8 m²</span><span class="en">Room 07 of 07 · 20.8 m²</span></p>
-  <h2 id="t-bed"><span class="de">Schlafzimmer</span><span class="en">Bedroom</span></h2>
-  <p class="lede"><span class="de">Ein Nussbaumbett mit hohem Kopfteil vor einer Wand in warmem Kalkputz, weiche Leinenbettwäsche mit salbeigrünen Kissen, eine Samtbank am Fußende und ein Lesesessel am Gartenfenster.</span><span class="en">A walnut bed with a tall headboard against a warm limewash wall, soft linen bedding with sage cushions, a velvet bench at the foot and a reading chair by the garden window.</span></p>
+  <p class="eyebrow"><span class="de">Schlafzimmer · Stoffe</span><span class="en">Bedroom · Fabrics</span></p>
+  <h2 id="t-bed"><span class="de">Gemütlich ohne Gewicht</span><span class="en">Cosy without weight</span></h2>
+  <p class="lede"><span class="de">Leinen mit Webfäden, Strick mit Maschen, Samt mit seidigem Schimmer, alles gerechnet. Die Bettdecke ist ein Stofftuch, das in Falten über die Matratze fällt, und die Bilder an den Wänden werden beim Laden gemalt, jedes Mal genau gleich.</span><span class="en">Linen with woven threads, knit with stitches, velvet with a silky sheen, all computed. The duvet is a sheet of cloth that falls over the mattress in folds, and the paintings on the walls are painted while loading, exactly the same every time.</span></p>
   <dl class="specs">
-    <div><dt><span class="de">Bett</span><span class="en">Bed</span></dt><dd><span class="de">180 × 200 cm</span><span class="en">180 × 200 cm</span></dd></div>
-    <div><dt><span class="de">Akzentwand</span><span class="en">Feature wall</span></dt><dd><span class="de">Kalkputz</span><span class="en">Limewash</span></dd></div>
-    <div><dt><span class="de">Schrank</span><span class="en">Wardrobe</span></dt><dd><span class="de">2,9 m, Eiche</span><span class="en">2.9 m, oak</span></dd></div>
-    <div><dt><span class="de">Bettwäsche</span><span class="en">Bedding</span></dt><dd><span class="de">Leinen, Strick</span><span class="en">Linen, knit</span></dd></div>
+    <div><dt><span class="de">Stoffe</span><span class="en">Fabrics</span></dt><dd><span class="de">Leinen, Strick, Samt, Leder</span><span class="en">linen, knit, velvet, leather</span></dd></div>
+    <div><dt><span class="de">Bettdecke</span><span class="en">Duvet</span></dt><dd><span class="de">Stoffnetz aus 4.300 Punkten</span><span class="en">cloth mesh of 4,300 points</span></dd></div>
+    <div><dt><span class="de">Kunst</span><span class="en">Art</span></dt><dd><span class="de">4 Bilder, generativ</span><span class="en">4 paintings, generative</span></dd></div>
+    <div><dt><span class="de">Fotos</span><span class="en">Photos</span></dt><dd><span class="de">keine</span><span class="en">none</span></dd></div>
   </dl>
 </section>
 
 <section class="card" data-i="8" data-view="rear" aria-labelledby="t-garden">
-  <p class="eyebrow"><span class="de">Außen · Terrasse · Pool 9 × 4 m</span><span class="en">Outside · terrace · pool 9 × 4 m</span></p>
-  <h2 id="t-garden"><span class="de">Garten</span><span class="en">Garden</span></h2>
-  <p class="lede"><span class="de">Die Terrassentür öffnet sich auf eine Steinterrasse mit Feuertisch zwischen zwei Zedernholz-Sofas. Dahinter ein Sonnendeck mit Liegen am Pool, eine hohe Hecke und die Berge am Horizont.</span><span class="en">The garden door opens onto a stone terrace with a fire table between two cedar sofas. Beyond it a sun deck with loungers by the pool, a tall hedge and the mountains on the horizon.</span></p>
+  <p class="eyebrow"><span class="de">Garten · Natur</span><span class="en">Garden · Nature</span></p>
+  <h2 id="t-garden"><span class="de">Kreativität ist die einzige Grenze</span><span class="en">Creativity is the only limit</span></h2>
+  <p class="lede"><span class="de">Über 100.000 Grashalme wiegen sich im Wind, rund 80 Bäume wachsen nach einem Verzweigungsplan, die Alpen entstehen aus fraktalem Rauschen, und Wolken ziehen über den Himmel. Nichts davon wurde fotografiert. Was man sich ausdenken kann, kann man bauen.</span><span class="en">Over 100,000 blades of grass sway in the wind, about 80 trees grow from a branching plan, the Alps rise from fractal noise and clouds drift across the sky. None of it was photographed. Whatever you can think of, you can build.</span></p>
+  <dl class="specs">
+    <div><dt><span class="de">Grashalme</span><span class="en">Grass blades</span></dt><dd><span class="de">bis 230.000</span><span class="en">up to 230,000</span></dd></div>
+    <div><dt><span class="de">Bäume</span><span class="en">Trees</span></dt><dd><span class="de">rund 80, gewachsen</span><span class="en">about 80, grown</span></dd></div>
+    <div><dt><span class="de">Berge</span><span class="en">Mountains</span></dt><dd><span class="de">Ring von 15 km</span><span class="en">15 km ring</span></dd></div>
+    <div><dt><span class="de">Himmel</span><span class="en">Sky</span></dt><dd><span class="de">physikalisch, mit Wolken</span><span class="en">physical, with clouds</span></dd></div>
+  </dl>
 </section>
 
 <section class="card" data-i="9" data-view="rear" aria-labelledby="t-outro">
   <p class="eyebrow"><span class="de">Ihr Projekt</span><span class="en">Your project</span></p>
-  <h2 id="t-outro"><span class="de">Begehen Sie Ihr Haus, bevor es gebaut ist</span><span class="en">Walk through your house before it is built</span></h2>
-  <p class="lede"><span class="de">Diese Demo von Seofessionals zeigt, was mit Ihrem Projekt möglich ist: als begehbare 3D-Welt, die vollständig im Browser entsteht: federleicht geladen, live beleuchtet, am Handy wie am Rechner.</span><span class="en">This Seofessionals demo shows what is possible for your project: as a walkable 3D world generated entirely in the browser: featherweight to load, lit live, on phone or desktop.</span></p>
+  <h2 id="t-outro"><span class="de">Schlank. Schön. Grenzenlos.</span><span class="en">Slim. Beautiful. Limitless.</span></h2>
+  <p class="lede"><span class="de">Fotorealistische Renderings beeindrucken, aber sie sind schwer. Mit three.js schreiben wir Ihr Projekt als Code: Ihre Website bleibt schnell, und in kreativen Händen sieht das Ergebnis sogar schöner aus als ein 3D-Render. Ihr Haus, Ihre Wohnung oder Ihr Laden, begehbar auf jedem Gerät.</span><span class="en">Photoreal renderings impress, but they are heavy. With three.js we write your project as code: your website stays fast, and in creative hands the result looks even better than a 3D render. Your house, your apartment or your shop, walkable on any device.</span></p>
   <div class="actions">
     <button type="button" class="cta" id="book"><span class="de">Projekt anfragen</span><span class="en">Request a project</span></button>
-    <button type="button" class="ghost" data-go="0"><span class="de">Noch einmal durchgehen</span><span class="en">Take the tour again</span></button>
+    <a class="ghost" id="to-render" href="https://seofessionals-3js.github.io/seofessionals-3d-demo/" target="_blank" rel="noopener"><span class="de">Zum 3D Render</span><span class="en">To the 3D render</span></a>
+    <button type="button" class="ghost" data-go="0"><span class="de">Noch einmal</span><span class="en">Tour again</span></button>
     <button type="button" class="tier-switch" id="tier-switch"><span class="de">Qualität ändern</span><span class="en">Change quality</span></button>
   </div>
   <p class="contact" id="contact" hidden><span class="de">Sprechen Sie Seofessionals an. Wir bauen Ihr Haus, Ihre Wohnung oder Ihr Ladenlokal als begehbare 3D-Welt für Ihre Website.</span><span class="en">Talk to Seofessionals. We build your house, apartment or shop as a walkable 3D world for your website.</span></p>

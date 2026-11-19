@@ -365,6 +365,7 @@ function addFlames(list) {
 
 /* ================= Build ================= */
 let M, BOOKS, K, stepBirds = () => {};
+const stats = { parts: 0, meshes: 0, lamps: 0, trees: 0 };
 const doorParts = [];
 async function buildWorld() {
   await step('Materialien werden erzeugt', 'Generating materials');
@@ -399,7 +400,9 @@ async function buildWorld() {
   };
   const root = new T.Group(); root.name = 'world'; scene.add(root);
   await step('Geometrie wird zusammengeführt', 'Merging geometry');
+  for (const b of K.buckets.values()) stats.parts += b.geos.length;
   const meshes = K.build(root, variant);
+  stats.meshes = meshes.length; stats.lamps = K.lights.length;
   for (const m of new Set(meshes.map((x) => x.material))) if (!m.userData.ext && !m.transparent && !m.userData.noBox) addBoxProjection(m);
   // the front door swings on its hinge
   const pivot = new T.Group(); pivot.position.copy(B(...DOOR_HINGE)); scene.add(pivot); pivot.updateMatrixWorld(true);
@@ -424,6 +427,7 @@ async function buildWorld() {
     P2.push({ x, y, h: 8 + rr() * 6, r: rr() * 6.28, t: i % 2 });
   }
   buildTrees(scene, M, far, P2, { leafSize: SD ? 256 : 512, shadows: false });
+  stats.trees = P.length + P2.length;
   await step('Rasen wird gesät', 'Sowing the lawn');
   buildGrass(scene, SD ? 0 : MAX ? 230000 : 110000, GRASS_HOLES, [PLOT[0] + 0.7, PLOT[1] + 0.7, PLOT[2] - 0.7, PLOT[3] - 0.7]);
   await step('Berge und Himmel', 'Mountains and sky');
@@ -824,6 +828,9 @@ $$('[data-go]').forEach((el) => {
   if (el.tagName !== 'BUTTON') el.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); goTo(i); } });
 });
 $('#book').addEventListener('click', () => { $('#contact').hidden = false; });
+// on GitHub Pages the rendered edition is one folder up: switch in the same tab
+const toRender = $('#to-render');
+if (toRender && /\.github\.io$/.test(location.hostname)) { toRender.href = '../'; toRender.removeAttribute('target'); }
 $('#tier-switch').addEventListener('click', () => { try { localStorage.removeItem('seo3d-three-tier'); } catch (e) { /* ignore */ } location.href = location.pathname; });
 
 /* ================= Loop ================= */
@@ -957,6 +964,6 @@ async function boot() {
   console.info('built in', Math.round(performance.now() - t0), 'ms');
   requestAnimationFrame(() => { loaderEl.classList.add('done'); loaderEl.setAttribute('aria-hidden', 'true'); });
   requestAnimationFrame(frame);
-  window.lindenWorld = { scene, camera, renderer, renderFrame, ready: true, posCurve, tgtCurve, SEC, CP, CAMS, applyRoom, roomAt, door, setDoor, lookLevel, exposureAt, sun, pool, setShadowMode, M, update, snapView, unfreeze: () => { frozen = false; } };
+  window.lindenWorld = { scene, camera, renderer, renderFrame, ready: true, posCurve, tgtCurve, SEC, CP, CAMS, applyRoom, roomAt, door, setDoor, lookLevel, exposureAt, sun, pool, setShadowMode, M, update, snapView, stats, unfreeze: () => { frozen = false; } };
 }
 boot().catch((e) => { console.error(e); if (!loaderEl.classList.contains('failed')) fail(L('Der Rundgang konnte in diesem Browser nicht starten.', 'The tour could not start in this browser.')); });
